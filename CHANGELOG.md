@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+***
+
+
+## [1.2.19] - 2026-05-31
+
 ### Added
 - 🌙 **Customizable screensaver content** (#47, #91, #61): The screensaver is no longer just a brightness dimmer. A new "Screensaver Style" selector in Settings → Display → Screensaver offers three modes: **Dim Only** (default, unchanged — just dims the brightness), **Web Page** (displays a read-only URL fullscreen — clock, dashboard, HTML; tap anywhere to wake), and **Video / Image** (plays a video/image playlist via the existing MediaPlayerComponent with loop, mute, fit modes). In URL and Video modes the current brightness is preserved (auto-brightness keeps working), so the screen stays visible and Android no longer turns it off — addressing wall-mounted panel use cases. Existing users are unaffected: defaults remain Dim Only. A warning is shown in settings if Screensaver Brightness is below 10% while URL/Video is selected.
 
@@ -964,6 +970,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ***
 
 
+[1.2.19]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.19
+[1.2.18]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.18
+[1.2.17]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.17
+[1.2.16]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.16
+[1.2.15]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.15
+[1.2.14]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.14
+[1.2.13]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.13
+[1.2.12]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.12
+[1.2.11]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.11
+[1.2.10]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.10
+[1.2.9]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.9
+[1.2.8]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.8
+[1.2.7]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.7
+[1.2.6]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.6
+[1.2.5]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.5
+[1.2.4]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.4
+[1.2.3]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.3
+[1.2.2]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.2
+[1.2.1]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2.1
+[1.2]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.2
+[1.1.4]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.1.4
 [1.1.3]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.1.3
 [1.1.2]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.1.2
 [1.1.1]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.1.1
@@ -973,4 +1000,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.0.3]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.0.3
 [1.0.2]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.0.2
 [1.0.1]: https://github.com/rushb-fr/freekiosk/releases/tag/v1.0.1
-[Unreleased]: https://github.com/rushb-fr/freekiosk/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/rushb-fr/freekiosk/compare/v1.2.19...HEAD
