@@ -55,33 +55,46 @@ class KioskHttpServer(
 
         // Route requests
         val isGetOrPost = method == Method.GET || method == Method.POST
+
+        // POST-only endpoints that require a JSON body (GET on these → 405, not 404)
+        val postOnlyUris = setOf(
+            "/api/url", "/api/navigate", "/api/tts", "/api/toast",
+            "/api/app/launch", "/api/js", "/api/audio/play", "/api/remote/text"
+        )
+
         val response = try {
             when {
-                // GET endpoints (read-only)
-                method == Method.GET && uri == "/api/status" -> handleGetStatus()
-                method == Method.GET && uri == "/api/battery" -> handleGetBattery()
-                method == Method.GET && uri == "/api/brightness" -> handleGetBrightness()
-                method == Method.GET && uri == "/api/screen" -> handleGetScreen()
-                method == Method.GET && uri == "/api/wifi" -> handleGetWifi()
-                method == Method.GET && uri == "/api/info" -> handleGetInfo()
-                method == Method.GET && uri == "/api/health" -> handleHealth()
-                method == Method.GET && uri == "/api/rotation" -> handleGetRotation()
-                method == Method.GET && uri == "/api/sensors" -> handleGetSensors()
-                method == Method.GET && uri == "/api/storage" -> handleGetStorage()
-                method == Method.GET && uri == "/api/memory" -> handleGetMemory()
-                method == Method.GET && uri == "/api/volume" -> handleGetVolume()
-                method == Method.GET && uri == "/api/screenshot" -> handleScreenshot()
-                method == Method.GET && uri == "/api/camera/photo" -> handleCameraPhoto(session)
-                method == Method.GET && uri == "/api/camera/list" -> handleCameraList()
-                method == Method.GET && uri == "/api/location" -> handleGetLocation()
-                method == Method.GET && uri == "/" -> handleRoot()
+                // Read-only endpoints — accept GET or POST (no body needed)
+                isGetOrPost && uri == "/api/status" -> handleGetStatus()
+                isGetOrPost && uri == "/api/battery" -> handleGetBattery()
+                isGetOrPost && uri == "/api/screen" -> handleGetScreen()
+                isGetOrPost && uri == "/api/wifi" -> handleGetWifi()
+                isGetOrPost && uri == "/api/info" -> handleGetInfo()
+                isGetOrPost && uri == "/api/health" -> handleHealth()
+                isGetOrPost && uri == "/api/rotation" -> handleGetRotation()
+                isGetOrPost && uri == "/api/sensors" -> handleGetSensors()
+                isGetOrPost && uri == "/api/storage" -> handleGetStorage()
+                isGetOrPost && uri == "/api/memory" -> handleGetMemory()
+                isGetOrPost && uri == "/api/screenshot" -> handleScreenshot()
+                isGetOrPost && uri == "/api/camera/list" -> handleCameraList()
+                isGetOrPost && uri == "/api/location" -> handleGetLocation()
+                isGetOrPost && uri == "/" -> handleRoot()
 
-                // POST endpoints requiring a body (POST only, GET returns 405)
-                method == Method.POST && uri == "/api/brightness" -> handleSetBrightness(session)
+                // Read endpoints that also have a POST variant — POST with body sets, GET/POST without body reads
+                isGetOrPost && uri == "/api/brightness" -> {
+                    if (method == Method.POST) handleSetBrightness(session) else handleGetBrightness()
+                }
+                isGetOrPost && uri == "/api/volume" -> {
+                    if (method == Method.POST) handleSetVolume(session) else handleGetVolume()
+                }
+
+                // Camera photo: GET or POST (query params drive behavior)
+                isGetOrPost && uri == "/api/camera/photo" -> handleCameraPhoto(session)
+
+                // POST-only control endpoints requiring a JSON body
                 method == Method.POST && uri == "/api/url" -> handleSetUrl(session)
                 method == Method.POST && uri == "/api/navigate" -> handleSetUrl(session)
                 method == Method.POST && uri == "/api/tts" -> handleTts(session)
-                method == Method.POST && uri == "/api/volume" -> handleSetVolume(session)
                 method == Method.POST && uri == "/api/toast" -> handleToast(session)
                 method == Method.POST && uri == "/api/app/launch" -> handleLaunchApp(session)
                 method == Method.POST && uri == "/api/js" -> handleExecuteJs(session)
@@ -101,11 +114,11 @@ class KioskHttpServer(
                 isGetOrPost && uri == "/api/restart-ui" -> handleRestartUi()
                 isGetOrPost && uri == "/api/audio/stop" -> handleAudioStop()
                 isGetOrPost && uri == "/api/audio/beep" -> handleAudioBeep()
-                
+
                 // Rotation control (accept both GET and POST)
                 isGetOrPost && uri == "/api/rotation/start" -> handleRotationStart()
                 isGetOrPost && uri == "/api/rotation/stop" -> handleRotationStop()
-                
+
                 // Remote control - Android TV (accept both GET and POST)
                 isGetOrPost && uri == "/api/remote/up" -> handleRemoteKey("up")
                 isGetOrPost && uri == "/api/remote/down" -> handleRemoteKey("down")
@@ -121,13 +134,11 @@ class KioskHttpServer(
                 isGetOrPost && uri == "/api/remote/keyboard" -> handleKeyboardCombo(session)
                 isGetOrPost && uri.startsWith("/api/remote/keyboard/") -> handleKeyboardKey(uri)
 
-                // Method Not Allowed: valid POST endpoints called with GET
-                method == Method.GET && uri in listOf(
-                    "/api/brightness", "/api/url", "/api/navigate", "/api/tts",
-                    "/api/toast", "/api/app/launch", "/api/js", "/api/audio/play",
-                    "/api/remote/text"
-                ) -> jsonError(Response.Status.METHOD_NOT_ALLOWED, "This endpoint requires POST with a JSON body")
+                // Method Not Allowed: POST-only endpoints called with GET
+                method == Method.GET && uri in postOnlyUris ->
+                    jsonError(Response.Status.METHOD_NOT_ALLOWED, "This endpoint requires POST with a JSON body")
 
+                // 404 only for truly unknown paths
                 else -> jsonError(Response.Status.NOT_FOUND, "Endpoint not found")
             }
         } catch (e: Exception) {
