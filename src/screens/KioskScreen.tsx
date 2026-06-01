@@ -449,13 +449,19 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
           console.log('[API] Screensaver setting DISABLED');
         },
         onScreenOn: () => {
+          console.log('[API] Screen ON');
+          // Deactivate screensaver overlay immediately — covers both the case where the
+          // screen was physically locked (onScreenStateChanged will also fire) and the case
+          // where only the screensaver overlay was active (screen physically on, no lock event).
           setIsScreensaverActive(false);
           resetTimer();
-          console.log('[API] Screen ON');
+          KioskModule.turnScreenOn()
+            .catch((e: any) => console.warn('[API] turnScreenOn failed:', e));
         },
         onScreenOff: () => {
-          setIsScreensaverActive(true);
           console.log('[API] Screen OFF');
+          KioskModule.turnScreenOff()
+            .catch((e: any) => console.warn('[API] turnScreenOff failed:', e));
         },
         onWake: () => {
           setIsScreensaverActive(false);
