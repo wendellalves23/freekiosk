@@ -297,6 +297,27 @@ index 0287e1c..1abee9d 100644
          final RNCWebView rncWebView = (RNCWebView) view;
 @@ -157,23 +302,15 @@ public class RNCWebViewClient extends WebViewClient {
  
++    /**
++     * Returns true if the SSL error originates from the main frame rather than a sub-resource.
++     * Handles three cases:
++     *  - topWindowUrl is null/empty: initial navigation, webView.getUrl() not set yet
++     *  - exact match: normal case
++     *  - same host: redirect chain (e.g. http://host -> https://host or /path change)
++     */
++    private boolean isMainFrameRequest(String topWindowUrl, String failingUrl) {
++        if (topWindowUrl == null || topWindowUrl.isEmpty()) return true;
++        if (topWindowUrl.equalsIgnoreCase(failingUrl)) return true;
++        try {
++            android.net.Uri topUri = android.net.Uri.parse(topWindowUrl);
++            android.net.Uri failUri = android.net.Uri.parse(failingUrl);
++            String topHost = topUri.getHost();
++            String failHost = failUri.getHost();
++            return topHost != null && topHost.equalsIgnoreCase(failHost);
++        } catch (Exception e) {
++            return false;
++        }
++    }
++
      @Override
      public void onReceivedSslError(final WebView webView, final SslErrorHandler handler, final SslError error) {
 -        // onReceivedSslError is called for most requests, per Android docs: https://developer.android.com/reference/android/webkit/WebViewClient#onReceivedSslError(android.webkit.WebView,%2520android.webkit.SslErrorHandler,%2520android.net.http.SslError)
@@ -336,22 +357,24 @@ index 0287e1c..1abee9d 100644
 -        );
 -        return;
 -      }
-+        // Check if certificate is already accepted (with expiration check)
++        // Check if certificate is already accepted (with expiration check).
++        // No URL equality check here — the fingerprint alone uniquely identifies the cert,
++        // and the URL may differ after a redirect (e.g. http → https).
 +        String certFingerprint = getCertificateFingerprint(error.getCertificate());
 +        if (isCertificateAccepted(webView.getContext(), certFingerprint, failingUrl) &&
-+            code == SslError.SSL_UNTRUSTED &&
-+            topWindowUrl != null && topWindowUrl.equalsIgnoreCase(failingUrl)) {
-+            // Certificate already trusted by user and not expired
++            code == SslError.SSL_UNTRUSTED) {
 +            if (BuildConfig.DEBUG) {
 +                Log.i(TAG, "Using previously accepted certificate: " + failingUrl);
 +            }
 +            handler.proceed();
 +            return;
 +        }
- 
+
 -        this.onReceivedError(
-+        // IMPORTANT: Only show dialog for self-signed (SSL_UNTRUSTED)
-+        if (code == SslError.SSL_UNTRUSTED && topWindowUrl != null && topWindowUrl.equalsIgnoreCase(failingUrl)) {
++        // IMPORTANT: Only show dialog for self-signed (SSL_UNTRUSTED) on the main frame.
++        // isMainFrameRequest() handles: null topWindowUrl (initial nav), exact match, and
++        // same-host redirects (http → https) which are common with local servers like HA.
++        if (code == SslError.SSL_UNTRUSTED && isMainFrameRequest(topWindowUrl, failingUrl)) {
 +            // Show user consent dialog
 +            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(webView.getContext());
 +            builder.setTitle("SSL Certificate Warning");
@@ -398,7 +421,7 @@ index 0287e1c..1abee9d 100644
 +        }
 +
 +        // For other SSL errors (expired, mismatch, etc) or sub-resources → reject
-+        if (topWindowUrl == null || !topWindowUrl.equalsIgnoreCase(failingUrl)) {
++        if (!isMainFrameRequest(topWindowUrl, failingUrl)) {
 +            // Subresource error
 +            Log.w(TAG, "Resource blocked from loading due to SSL error. Blocked URL: " + failingUrl);
 +            this.onReceivedSubResourceSslError(
