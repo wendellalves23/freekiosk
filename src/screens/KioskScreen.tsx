@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Text, NativeEventEmitter, NativeModules, AppState, DeviceEventEmitter, Dimensions, Pressable, BackHandler } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Text, NativeEventEmitter, NativeModules, AppState, DeviceEventEmitter, Dimensions, Pressable, BackHandler, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNBrightness from '../utils/BrightnessModule';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
@@ -1888,12 +1888,14 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
           // Start a pre-check window; if no motion is detected within it, activate the screensaver
           preCheckTimerRef.current = setTimeout(() => {
             console.log(`[KioskScreen] No motion detected after ${MOTION_PRE_CHECK_DELAY_MS}ms — activating screensaver`);
+            Keyboard.dismiss();
             setIsScreensaverActive(true);
             // Keep isPreCheckingMotion false since the screensaver takes over
             setIsPreCheckingMotion(false);
           }, MOTION_PRE_CHECK_DELAY_MS);
         } else {
           // No motion detection — activate directly
+          Keyboard.dismiss();
           setIsScreensaverActive(true);
         }
       }, inactivityDelay);

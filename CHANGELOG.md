@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+***
+
+
+## [1.2.20] - 2026-06-03
+
 ### Added
 - 🎨 **Status bar light/dark theme** (#118): A new "Status Bar Theme" toggle (Light / Dark) is now available in Settings → Display → Status Bar. In Dark mode (default), the status bar renders with white icons on a dark background — suitable for kiosks with dark web content. In Light mode, icons are black on a transparent/light background — suitable for kiosks with white or bright web content. All icons (battery, Wi-Fi, Bluetooth, volume, clock) are now rendered with `MaterialCommunityIcons` replacing the previous emoji characters, for consistent sizing, alignment, and color control across Android versions.
 
@@ -41,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔄 **Auto-reload does not trigger on HTTP 5xx errors (e.g. 504 Gateway Timeout)** (#173): The "Reload on Error" feature only handled network-level failures (no connectivity, DNS failure) via `onError`. HTTP error responses like 504 Gateway Timeout are delivered via `onHttpError` and were only logged — no reload was triggered. Fixed by extending `handleHttpError` to apply the same 5-second auto-reload for any HTTP 5xx status code when "Reload on Error" is enabled.
 
 - 💾 **Custom User Agent not included in backup/restore** (#174): The `@kiosk_custom_user_agent` storage key was missing from the backup key list in `BackupService`. Exporting and re-importing a configuration would silently drop the Custom User Agent setting. Added to the backup keys list.
+
+- ⌨️ **Soft keyboard remains visible when screensaver activates in URL/Video/Image mode** (#135): The existing fix (v1.2.19) dismissed the keyboard on `ACTION_SCREEN_OFF`, which only fires in Dim Only screensaver mode. In URL, Video, and Image screensaver modes the screen stays on — no `SCREEN_OFF` event fires — so the keyboard was never dismissed. Fixed by calling `Keyboard.dismiss()` at both screensaver activation paths in `KioskScreen`.
 
 
 ***
