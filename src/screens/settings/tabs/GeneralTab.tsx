@@ -25,6 +25,7 @@ import type { MediaItem, MediaFitMode } from '../../../types/mediaPlayer';
 import { generateMediaItemId, detectMediaType, isLocalMedia, getMediaDisplayName } from '../../../types/mediaPlayer';
 import FilePickerModule from '../../../utils/FilePickerModule';
 import type { PickedFile } from '../../../utils/FilePickerModule';
+import { isFilarePanelUrl } from '../../../utils/filarePanelUrl';
 
 interface GeneralTabProps {
   // Display mode
@@ -155,6 +156,16 @@ interface GeneralTabProps {
   basicAuthPassword: string;
   onBasicAuthPasswordChange: (value: string) => void;
 
+  // FILARE panel RAM-saving profile (webview + FILARE URL)
+  filarePanelProfileEnabled: boolean;
+  onFilarePanelProfileEnabledChange: (value: boolean) => void;
+  filarePanelProfileLowMemoryUrl: boolean;
+  onFilarePanelProfileLowMemoryUrlChange: (value: boolean) => void;
+  filarePanelProfileAllowRestApi: boolean;
+  onFilarePanelProfileAllowRestApiChange: (value: boolean) => void;
+  filarePanelProfileAllowMqtt: boolean;
+  onFilarePanelProfileAllowMqttChange: (value: boolean) => void;
+
   // Navigation
   onBackToKiosk: () => void;
 }
@@ -254,8 +265,18 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   onBasicAuthUsernameChange,
   basicAuthPassword,
   onBasicAuthPasswordChange,
+  filarePanelProfileEnabled,
+  onFilarePanelProfileEnabledChange,
+  filarePanelProfileLowMemoryUrl,
+  onFilarePanelProfileLowMemoryUrlChange,
+  filarePanelProfileAllowRestApi,
+  onFilarePanelProfileAllowRestApiChange,
+  filarePanelProfileAllowMqtt,
+  onFilarePanelProfileAllowMqttChange,
   onBackToKiosk,
 }) => {
+  const filarePanelUrl = isFilarePanelUrl(url);
+
   return (
     <View>
       {/* Display Mode Selection */}
@@ -570,7 +591,54 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           )}
         </SettingsSection>
       )}
-      
+
+      {/* FILARE panel profile — WebView + FILARE panel/tv URL */}
+      {displayMode === 'webview' && filarePanelUrl && !dashboardModeEnabled && (
+        <SettingsSection title="Perfil painel FILARE (economia RAM)" icon="speedometer">
+          <SettingsInfoBox variant="info">
+            <Text style={styles.infoText}>
+              Recomendado para TV box com 1–2 GB de RAM. Desliga recursos extras do kiosk e
+              pode enviar lowMemory=1 ao FILARE para reduzir uso de memória no vídeo.
+            </Text>
+          </SettingsInfoBox>
+          <SettingsSwitch
+            label="Ativar perfil economia RAM"
+            value={filarePanelProfileEnabled}
+            onValueChange={onFilarePanelProfileEnabledChange}
+            hint="Desliga PDF, rotação, planner, screensaver, motion, inactivity return, status bar e debug overlay"
+          />
+          {filarePanelProfileEnabled && (
+            <>
+              <SettingsSwitch
+                label="Enviar lowMemory=1 ao FILARE"
+                value={filarePanelProfileLowMemoryUrl}
+                onValueChange={onFilarePanelProfileLowMemoryUrlChange}
+                hint="Acrescenta ?lowMemory=1 na URL do painel (player de vídeo leve no servidor)"
+              />
+              <SettingsSwitch
+                label="Permitir REST API local"
+                value={filarePanelProfileAllowRestApi}
+                onValueChange={onFilarePanelProfileAllowRestApiChange}
+                hint="Mantém /api/reload e demais endpoints locais (Advanced) se já estiverem ligados"
+              />
+              <SettingsSwitch
+                label="Permitir MQTT"
+                value={filarePanelProfileAllowMqtt}
+                onValueChange={onFilarePanelProfileAllowMqttChange}
+                hint="Mantém cliente MQTT (Advanced) se já estiver ligado"
+              />
+              <SettingsInfoBox variant="info">
+                <Text style={styles.infoText}>
+                  Com o perfil ativo ficam desligados: PDF viewer, URL rotation, URL planner,
+                  screensaver, motion detection, inactivity return, status bar do FreeKiosk e
+                  panel debug overlay. Tela sempre ligada e kiosk não são alterados.
+                </Text>
+              </SettingsInfoBox>
+            </>
+          )}
+        </SettingsSection>
+      )}
+
       {/* HTTP Basic Auth (WebView mode only) */}
       {displayMode === 'webview' && (
         <SettingsSection title="Website Authentication" icon="lock-outline">

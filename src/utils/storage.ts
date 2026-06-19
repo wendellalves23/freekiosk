@@ -116,6 +116,13 @@ const KEYS = {
   WEBVIEW_ZOOM_LEVEL: '@kiosk_webview_zoom_level',
   // Disable User Zoom (pinch-to-zoom)
   DISABLE_USER_ZOOM: '@kiosk_disable_user_zoom',
+  // FILARE panel debug overlay (viewport dimensions in WebView)
+  PANEL_DEBUG_OVERLAY: '@kiosk_panel_debug_overlay',
+  // FILARE panel RAM-saving profile (TV box / weak hardware)
+  FILARE_PANEL_PROFILE_ENABLED: '@kiosk_filare_panel_profile_enabled',
+  FILARE_PANEL_PROFILE_LOW_MEMORY_URL: '@kiosk_filare_panel_profile_low_memory_url',
+  FILARE_PANEL_PROFILE_ALLOW_REST_API: '@kiosk_filare_panel_profile_allow_rest_api',
+  FILARE_PANEL_PROFILE_ALLOW_MQTT: '@kiosk_filare_panel_profile_allow_mqtt',
   // Custom User Agent
   CUSTOM_USER_AGENT: '@kiosk_custom_user_agent',
   // MQTT (Home Assistant integration)
@@ -365,6 +372,13 @@ export const StorageService = {
         KEYS.PRINT_ENABLED,
         // WebView Zoom Level
         KEYS.WEBVIEW_ZOOM_LEVEL,
+        KEYS.DISABLE_USER_ZOOM,
+        KEYS.PANEL_DEBUG_OVERLAY,
+        // FILARE panel profile
+        KEYS.FILARE_PANEL_PROFILE_ENABLED,
+        KEYS.FILARE_PANEL_PROFILE_LOW_MEMORY_URL,
+        KEYS.FILARE_PANEL_PROFILE_ALLOW_REST_API,
+        KEYS.FILARE_PANEL_PROFILE_ALLOW_MQTT,
         // Custom User Agent
         KEYS.CUSTOM_USER_AGENT,
         // MQTT
@@ -2077,9 +2091,110 @@ export const StorageService = {
   getDisableUserZoom: async (): Promise<boolean> => {
     try {
       const value = await AsyncStorage.getItem(KEYS.DISABLE_USER_ZOOM);
-      return value ? JSON.parse(value) : false;
+      return value ? JSON.parse(value) : true;
     } catch (error) {
       console.error('Error getting disable user zoom:', error);
+      return true;
+    }
+  },
+
+  savePanelDebugOverlay: async (value: boolean): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(KEYS.PANEL_DEBUG_OVERLAY, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error saving panel debug overlay:', error);
+    }
+  },
+
+  getPanelDebugOverlay: async (): Promise<boolean> => {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.PANEL_DEBUG_OVERLAY);
+      return value ? JSON.parse(value) : false;
+    } catch (error) {
+      console.error('Error getting panel debug overlay:', error);
+      return false;
+    }
+  },
+
+  // ============ FILARE panel profile (RAM saving) ============
+
+  saveFilarePanelProfileEnabled: async (value: boolean): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(KEYS.FILARE_PANEL_PROFILE_ENABLED, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error saving FILARE panel profile enabled:', error);
+    }
+  },
+
+  getFilarePanelProfileEnabled: async (): Promise<boolean> => {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.FILARE_PANEL_PROFILE_ENABLED);
+      return value ? JSON.parse(value) : false;
+    } catch (error) {
+      console.error('Error getting FILARE panel profile enabled:', error);
+      return false;
+    }
+  },
+
+  saveFilarePanelProfileLowMemoryUrl: async (value: boolean): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(
+        KEYS.FILARE_PANEL_PROFILE_LOW_MEMORY_URL,
+        JSON.stringify(value),
+      );
+    } catch (error) {
+      console.error('Error saving FILARE panel profile low memory URL:', error);
+    }
+  },
+
+  getFilarePanelProfileLowMemoryUrl: async (): Promise<boolean> => {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.FILARE_PANEL_PROFILE_LOW_MEMORY_URL);
+      return value === null ? true : JSON.parse(value);
+    } catch (error) {
+      console.error('Error getting FILARE panel profile low memory URL:', error);
+      return true;
+    }
+  },
+
+  saveFilarePanelProfileAllowRestApi: async (value: boolean): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(
+        KEYS.FILARE_PANEL_PROFILE_ALLOW_REST_API,
+        JSON.stringify(value),
+      );
+    } catch (error) {
+      console.error('Error saving FILARE panel profile allow REST API:', error);
+    }
+  },
+
+  getFilarePanelProfileAllowRestApi: async (): Promise<boolean> => {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.FILARE_PANEL_PROFILE_ALLOW_REST_API);
+      return value ? JSON.parse(value) : false;
+    } catch (error) {
+      console.error('Error getting FILARE panel profile allow REST API:', error);
+      return false;
+    }
+  },
+
+  saveFilarePanelProfileAllowMqtt: async (value: boolean): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(
+        KEYS.FILARE_PANEL_PROFILE_ALLOW_MQTT,
+        JSON.stringify(value),
+      );
+    } catch (error) {
+      console.error('Error saving FILARE panel profile allow MQTT:', error);
+    }
+  },
+
+  getFilarePanelProfileAllowMqtt: async (): Promise<boolean> => {
+    try {
+      const value = await AsyncStorage.getItem(KEYS.FILARE_PANEL_PROFILE_ALLOW_MQTT);
+      return value ? JSON.parse(value) : false;
+    } catch (error) {
+      console.error('Error getting FILARE panel profile allow MQTT:', error);
       return false;
     }
   },

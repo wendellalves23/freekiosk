@@ -1,0 +1,7 @@
+# Copy relevant lines to gradle.properties when customizing OTA endpoints.
+
+# Stable channel manifest (R2 public URL)
+# FREEKIOSK_UPDATE_MANIFEST_URL=https://downloads.filare.a23.net.br/releases/freekiosk/latest.json
+
+# Beta channel manifest
+# FREEKIOSK_UPDATE_MANIFEST_URL_BETA=https://downloads.filare.a23.net.br/releases/freekiosk/latest-beta.json

@@ -196,7 +196,15 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
   
   // WebView Zoom Level
   const [zoomLevel, setZoomLevel] = useState<number>(100);
-  const [disableUserZoom, setDisableUserZoom] = useState<boolean>(false);
+  const [disableUserZoom, setDisableUserZoom] = useState<boolean>(true);
+  const [panelDebugOverlay, setPanelDebugOverlay] = useState<boolean>(false);
+  const [filarePanelProfileEnabled, setFilarePanelProfileEnabled] = useState<boolean>(false);
+  const [filarePanelProfileLowMemoryUrl, setFilarePanelProfileLowMemoryUrl] =
+    useState<boolean>(true);
+  const [filarePanelProfileAllowRestApi, setFilarePanelProfileAllowRestApi] =
+    useState<boolean>(false);
+  const [filarePanelProfileAllowMqtt, setFilarePanelProfileAllowMqtt] =
+    useState<boolean>(false);
 
   // Custom User Agent
   const [customUserAgent, setCustomUserAgent] = useState<string>('');
@@ -620,6 +628,21 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
     setZoomLevel(savedZoomLevel);
     const savedDisableUserZoom = await StorageService.getDisableUserZoom();
     setDisableUserZoom(savedDisableUserZoom);
+    const savedPanelDebugOverlay = await StorageService.getPanelDebugOverlay();
+    setPanelDebugOverlay(savedPanelDebugOverlay);
+
+    const savedFilarePanelProfileEnabled =
+      await StorageService.getFilarePanelProfileEnabled();
+    setFilarePanelProfileEnabled(savedFilarePanelProfileEnabled);
+    const savedFilarePanelProfileLowMemoryUrl =
+      await StorageService.getFilarePanelProfileLowMemoryUrl();
+    setFilarePanelProfileLowMemoryUrl(savedFilarePanelProfileLowMemoryUrl);
+    const savedFilarePanelProfileAllowRestApi =
+      await StorageService.getFilarePanelProfileAllowRestApi();
+    setFilarePanelProfileAllowRestApi(savedFilarePanelProfileAllowRestApi);
+    const savedFilarePanelProfileAllowMqtt =
+      await StorageService.getFilarePanelProfileAllowMqtt();
+    setFilarePanelProfileAllowMqtt(savedFilarePanelProfileAllowMqtt);
 
     // Custom User Agent
     const savedCustomUserAgent = await StorageService.getCustomUserAgent();
@@ -1261,6 +1284,11 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
     await StorageService.saveKeyboardMode(keyboardMode);
     await StorageService.saveWebViewZoomLevel(zoomLevel);
     await StorageService.saveDisableUserZoom(disableUserZoom);
+    await StorageService.savePanelDebugOverlay(panelDebugOverlay);
+    await StorageService.saveFilarePanelProfileEnabled(filarePanelProfileEnabled);
+    await StorageService.saveFilarePanelProfileLowMemoryUrl(filarePanelProfileLowMemoryUrl);
+    await StorageService.saveFilarePanelProfileAllowRestApi(filarePanelProfileAllowRestApi);
+    await StorageService.saveFilarePanelProfileAllowMqtt(filarePanelProfileAllowMqtt);
     await StorageService.saveCustomUserAgent(customUserAgent);
     await StorageService.saveHttpBasicAuthUsername(basicAuthUsername);
     await saveSecureBasicAuthPassword(basicAuthPassword);
@@ -1345,6 +1373,9 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
     }
 
     // Update overlay settings
+    const finalTapCount = isNaN(tapCount) ? 5 : Math.max(2, Math.min(20, tapCount));
+    const finalTapTimeout = isNaN(tapTimeout) ? 1500 : Math.max(500, Math.min(5000, tapTimeout));
+
     if (displayMode === 'external_app') {
       const opacity = overlayButtonVisible ? 1.0 : 0.0;
       try {
@@ -1355,8 +1386,6 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
         await OverlayServiceModule.setStatusBarItems(showBattery, showWifi, showBluetooth, showVolume, showTime);
         
         // Restart OverlayService with new settings
-        const finalTapCount = isNaN(tapCount) ? 5 : Math.max(2, Math.min(20, tapCount));
-        const finalTapTimeout = isNaN(tapTimeout) ? 1500 : Math.max(500, Math.min(5000, tapTimeout));
         await OverlayServiceModule.stopOverlayService();
         await OverlayServiceModule.startOverlayService(
           finalTapCount, 
@@ -1367,6 +1396,24 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
           autoRelaunchApp,
           allowNotifications
         );
+      } catch (error) {
+        // Silent fail
+      }
+    } else if (displayMode === 'webview') {
+      try {
+        const { OverlayServiceModule } = NativeModules;
+        await OverlayServiceModule.stopOverlayService();
+        if (returnMode === 'tap_anywhere') {
+          await OverlayServiceModule.startOverlayService(
+            finalTapCount,
+            finalTapTimeout,
+            returnMode,
+            returnButtonPosition,
+            null,
+            false,
+            allowNotifications,
+          );
+        }
       } catch (error) {
         // Silent fail
       }
@@ -1730,6 +1777,14 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
             onBasicAuthUsernameChange={setBasicAuthUsername}
             basicAuthPassword={basicAuthPassword}
             onBasicAuthPasswordChange={setBasicAuthPassword}
+            filarePanelProfileEnabled={filarePanelProfileEnabled}
+            onFilarePanelProfileEnabledChange={setFilarePanelProfileEnabled}
+            filarePanelProfileLowMemoryUrl={filarePanelProfileLowMemoryUrl}
+            onFilarePanelProfileLowMemoryUrlChange={setFilarePanelProfileLowMemoryUrl}
+            filarePanelProfileAllowRestApi={filarePanelProfileAllowRestApi}
+            onFilarePanelProfileAllowRestApiChange={setFilarePanelProfileAllowRestApi}
+            filarePanelProfileAllowMqtt={filarePanelProfileAllowMqtt}
+            onFilarePanelProfileAllowMqttChange={setFilarePanelProfileAllowMqtt}
             onBackToKiosk={() => { revokeSettingsAccess(); navigation.reset({ index: 0, routes: [{ name: 'Kiosk' }] }); }}
           />
         );
@@ -1787,6 +1842,9 @@ const SettingsScreenNew: React.FC<SettingsScreenProps> = ({ navigation }) => {
             onZoomLevelChange={setZoomLevel}
             disableUserZoom={disableUserZoom}
             onDisableUserZoomChange={setDisableUserZoom}
+            panelDebugOverlay={panelDebugOverlay}
+            onPanelDebugOverlayChange={setPanelDebugOverlay}
+            kioskUrl={url}
             customUserAgent={customUserAgent}
             onCustomUserAgentChange={setCustomUserAgent}
             screensaverEnabled={screensaverEnabled}

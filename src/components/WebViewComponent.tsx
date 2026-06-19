@@ -18,10 +18,65 @@ import { WebView } from 'react-native-webview';
 import type { WebViewErrorEvent, ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { useNavigation } from '@react-navigation/native';
 import PrintModule from '../utils/PrintModule';
+import {
+  FILARE_PANEL_DEFAULT_USER_AGENT,
+  FILARE_PANEL_DESKTOP_USER_AGENT,
+  isFilarePanelUrl,
+} from '../utils/filarePanelUrl';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// WHY: Responsive web apps (e.g. FILARE panel) need device-width before first paint so
+// innerWidth/innerHeight match the WebView and layout scale is not shrunk twice.
+const FILARE_VIEWPORT_BOOTSTRAP_JS = `
+(function () {
+  var meta = document.querySelector('meta[name="viewport"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = 'viewport';
+    document.head.appendChild(meta);
+  }
+  meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+})();
+true;
+`;
+
+const FILARE_PANEL_RESIZE_SYNC_JS = `
+(function () {
+  function dispatchResize() {
+    window.dispatchEvent(new Event('resize'));
+    if (window.visualViewport) {
+      window.visualViewport.dispatchEvent(new Event('resize'));
+    }
+  }
+  dispatchResize();
+  setTimeout(dispatchResize, 100);
+  setTimeout(dispatchResize, 500);
+})();
+true;
+`;
+
+const FILARE_PANEL_DEBUG_OVERLAY_JS = `
+(function () {
+  if (document.getElementById('__fk_panel_debug')) {
+    return;
+  }
+  var el = document.createElement('div');
+  el.id = '__fk_panel_debug';
+  el.style.cssText = 'position:fixed;bottom:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px;max-width:90vw;pointer-events:none;white-space:pre-wrap';
+  function update() {
+    el.textContent = 'inner: ' + window.innerWidth + 'x' + window.innerHeight +
+      '\\ndpr: ' + window.devicePixelRatio +
+      '\\nua: ' + navigator.userAgent.substring(0, 72);
+  }
+  update();
+  window.addEventListener('resize', update);
+  document.documentElement.appendChild(el);
+})();
+true;
+`;
 
 interface WebViewComponentProps {
   url: string;
@@ -42,6 +97,8 @@ interface WebViewComponentProps {
   zoomLevel?: number; // Zoom level percentage (50-200, default 100)
   disableUserZoom?: boolean; // Prevent pinch-to-zoom and double-tap zoom
   customUserAgent?: string; // Custom User-Agent string (empty = default modern Chrome UA)
+  panelDebugOverlay?: boolean; // FILARE panel: show viewport debug overlay
+  filarePanelProfileActive?: boolean; // FILARE panel low-memory profile: disable multi-window
   basicAuthCredential?: { username: string; password: string };
 }
 
@@ -70,12 +127,25 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
   printEnabled = false,
   printPaperSize = 'A4',
   zoomLevel = 100,
-  disableUserZoom = false,
+  disableUserZoom = true,
   customUserAgent = '',
+  panelDebugOverlay = false,
+  filarePanelProfileActive = false,
   basicAuthCredential,
 }, ref) => {
   const navigation = useNavigation<NavigationProp>();
   const webViewRef = useRef<WebView>(null);
+  const panelProfileActive = useMemo(() => isFilarePanelUrl(url), [url]);
+  const effectiveZoomLevel = panelProfileActive ? 100 : zoomLevel;
+  const resolvedUserAgent = useMemo(() => {
+    const custom = customUserAgent?.trim();
+    if (custom) {
+      return custom;
+    }
+    return panelProfileActive
+      ? FILARE_PANEL_DESKTOP_USER_AGENT
+      : FILARE_PANEL_DEFAULT_USER_AGENT;
+  }, [customUserAgent, panelProfileActive]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [pageLoaded, setPageLoaded] = useState<boolean>(false);
@@ -87,6 +157,16 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
   // Last top-frame (main document) URL requested — used to distinguish a fatal
   // main-page HTTP error from a harmless sub-resource error (favicon, analytics…).
   const lastTopFrameUrlRef = useRef<string | null>(null);
+
+  const injectFilarePanelPostLoad = useCallback(() => {
+    if (!panelProfileActive || !webViewRef.current) {
+      return;
+    }
+    webViewRef.current.injectJavaScript(FILARE_PANEL_RESIZE_SYNC_JS);
+    if (panelDebugOverlay) {
+      webViewRef.current.injectJavaScript(FILARE_PANEL_DEBUG_OVERLAY_JS);
+    }
+  }, [panelProfileActive, panelDebugOverlay]);
 
   // Pre-compile URL filter patterns into RegExp for performance
   const compiledFilterPatterns = useMemo(() => {
@@ -261,19 +341,17 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
     window.__FREEKIOSK_INITIALIZED__ = true;
 
     // Apply CSS zoom to scale the entire page layout (text + containers + images)
-    ${zoomLevel !== 100 ? `
-    document.documentElement.style.zoom = '${zoomLevel / 100}';
+    ${effectiveZoomLevel !== 100 ? `
+    document.documentElement.style.zoom = '${effectiveZoomLevel / 100}';
     ` : ''}
 
-    // Disable user zoom (pinch-to-zoom and double-tap zoom) when configured
+    // Disable user zoom (pinch-to-zoom and double-tap zoom) when configured.
+    // Viewport meta is injected earlier via injectedJavaScriptBeforeContentLoaded.
     ${disableUserZoom ? `
     document.addEventListener('touchstart', function(e) {
       if (e.touches.length > 1) { e.preventDefault(); }
     }, { passive: false });
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
-    var meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; document.head.appendChild(meta); }
-    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
     ` : '// User zoom not disabled'}
 
     // Ensure storage is working properly
@@ -307,22 +385,21 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
       }
     }
 
-    // Tap detection for 5-tap - Use touchend on mobile (click doesn't always fire)
-    // Send coordinates for spatial proximity detection
-    document.addEventListener('touchend', function(e) {
-      if (e.changedTouches && e.changedTouches.length > 0) {
-        var touch = e.changedTouches[0];
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'FIVE_TAP_CLICK',
-          x: touch.clientX,
-          y: touch.clientY
-        }));
-      }
-    }, true);
-    
-    // Click handler for desktop/fallback - Also send user-interaction for screensaver reset
+    // N-tap settings: native OverlayService (FLAG_WATCH_OUTSIDE_TOUCH) handles touch on
+    // external apps; in WebView we also post FIVE_TAP_CLICK here so USB mouse / TV box
+    // clicks work (mouse does not generate ACTION_OUTSIDE on the native overlay).
+    function sendSettingsTap(x, y) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'FIVE_TAP_CLICK',
+        x: x,
+        y: y
+      }));
+    }
+
+    // Click handler — screensaver reset + N-tap settings (mouse and touch both fire click)
     document.addEventListener('click', function(e) {
       sendInteraction();
+      sendSettingsTap(e.clientX, e.clientY);
     }, true);
 
     // Scroll avec throttling (évite 50+ msg/sec)
@@ -805,7 +882,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
 
             {/* Footer */}
             <Text style={styles.footerText}>
-              Version 1.2.20 • by Rushb
+              Version 1.2.22 • by Rushb
             </Text>
           </Animated.View>
         </ScrollView>
@@ -822,7 +899,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
         
         // User Agent - Modern Chrome on Android to avoid WAF blocks (e.g. SiteGround)
         // Custom UA takes precedence if set, otherwise use a recent Chrome stable UA
-        userAgent={customUserAgent?.trim() || "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"}
+        userAgent={resolvedUserAgent}
         
         originWhitelist={pdfViewerEnabled ? ['http://*', 'https://*', 'file://*'] : ['http://*', 'https://*']}
         mixedContentMode="always"
@@ -852,6 +929,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
           if (!error) {
             setLoading(false);
             setPageLoaded(true);
+            injectFilarePanelPostLoad();
           }
 
           // Clear timeout since load completed normally
@@ -865,6 +943,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
           if (nativeEvent.progress === 1 && !error) {
             setLoading(false);
             setPageLoaded(true);
+            injectFilarePanelPostLoad();
 
             // Clear timeout since we've reached 100%
             if (loadingTimeoutRef.current) {
@@ -877,6 +956,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
 
         javaScriptEnabled={true}
         domStorageEnabled={true}
+        injectedJavaScriptBeforeContentLoaded={FILARE_VIEWPORT_BOOTSTRAP_JS}
         injectedJavaScript={combinedInjectedJavaScript}
 
         onMessage={onMessageHandler}
@@ -998,7 +1078,8 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
         }}
 
         textZoom={100}
-        scalesPageToFit={true}
+        // WHY: scalesPageToFit enables Android overview shrink and conflicts with FILARE panel layout scale.
+        scalesPageToFit={false}
         cacheEnabled={true}
         incognito={false}
         sharedCookiesEnabled={true}
@@ -1009,7 +1090,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
         
         // Allow popups/new windows - required for some login flows
         // Instead of opening a new window, we redirect in the same WebView
-        setSupportMultipleWindows={true}
+        setSupportMultipleWindows={!filarePanelProfileActive}
         onOpenWindow={(syntheticEvent) => {
           const { nativeEvent } = syntheticEvent;
           if (!nativeEvent.targetUrl) return;

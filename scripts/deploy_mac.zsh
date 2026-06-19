@@ -63,11 +63,11 @@ wait_for_user
 
 # Step 1: Find APK
 print_step "Step 1: Locating FreeKiosk APK"
-APK_FILE=$(find "$SCRIPT_DIR" -maxdepth 1 -name "freekiosk-v*.apk" | head -n 1)
+APK_FILE=$(find "$SCRIPT_DIR" -maxdepth 1 -name "wdkiosk-v*.apk" | head -n 1)
 
 if [[ -z "$APK_FILE" ]]; then
     print_error "No FreeKiosk APK found in the same directory as this script"
-    print_info "Looking for: freekiosk-v*.apk"
+    print_info "Looking for: wdkiosk-v*.apk"
     print_info "Script directory: $SCRIPT_DIR"
     exit 1
 fi

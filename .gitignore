@@ -25,6 +25,8 @@ DerivedData
 # Android/IntelliJ
 #
 build/
+.jdk/
+.jdk-download.tar.gz
 .idea
 .gradle
 local.properties

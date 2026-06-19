@@ -182,7 +182,9 @@ const AdvancedTab: React.FC<AdvancedTabProps> = ({
         )}
         
         <Text style={styles.hint}>
-          {isDeviceOwner ? 'Device Owner mode: Manual updates via GitHub.' : 'Download and install updates from GitHub.'}
+          {isDeviceOwner
+            ? 'Device Owner mode: silent install from R2 OTA manifest.'
+            : 'Download and install updates from the R2 release manifest.'}
         </Text>
       </SettingsSection>
       )}

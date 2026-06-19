@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 
 All notable changes to FreeKiosk will be documented in this file.
@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+
+***
+
+## [1.2.23] - 2026-06-19
+
+### Added
+- 🧠 **Perfil painel FILARE (economia RAM)**: Nova seção em Settings → General para TV boxes 1–2 GB. Desligado por padrão; quando ativo, desabilita recursos extras (PDF inline, rotação/planner de URL, screensaver, motion, inactivity return, overlay de debug, status bar) e pode acrescentar `?lowMemory=1` na URL do painel/totem FILARE. Sub-toggles opcionais reativam REST API local e MQTT. `android:largeHeap="true"` e WebView sem multi-janela quando o perfil está ativo.
+- 📦 **OTA via Cloudflare R2**: In-app updates now read `latest.json` / `latest-beta.json` from a public R2 bucket instead of the GitHub Releases API. Publish with `npm run apk:release:r2` (see `.env.example`). Manifest URLs are configurable via `FREEKIOSK_UPDATE_MANIFEST_URL` in `gradle.properties`.
 
 ### Fixed
 - 🔓 **Stuck in kiosk with no way back to settings when the page fails to load** (#180): In WebView mode the normal N-tap-to-settings gesture relies on JavaScript injected into the page, so when the page can't load (server down, Wi-Fi not yet up after a reboot, HTTP error) no taps were ever reported and the user was stranded. Two fixes: (1) the error overlay — with its fallback ⚙️ settings button — now appears for **any** main-document HTTP error code, regardless of the auto-reload setting (previously only for 5xx with auto-reload on), while sub-resource errors (favicons, scripts…) are correctly ignored; (2) the fallback ⚙️ button now counts toward the N-tap sequence in **every** return mode, not just "tap anywhere". The hardware Volume-Up ×5 shortcut remains the universal escape hatch.
@@ -25,6 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 💤 **Screensaver toggle resets to off after saving settings in External App mode** (#179): When display mode is set to External App, saving settings always forced `screensaverEnabled` to `false`, overwriting the user's choice. The screensaver save was correctly moved to apply to all display modes in a prior commit, but the old force-disable in the External App branch was never removed. Deleted the stale override.
 
 - 🔆 **MQTT `screenOn` command not working after `screenOff` in Device Owner mode** (#181): When Device Owner is active, `lockNow()` suspends the React Native JS thread, so MQTT commands routed through the JS event bridge were silently dropped. `screenOn` and `screenOff` are now handled natively in the MQTT command handler (same path as the REST API), bypassing the JS bridge entirely. Screen control logic has been extracted into a shared `ScreenController` object used by both MQTT and REST.
+
+***
+
+## [1.2.22] - 2026-06-19
+
+### Fixed
+- **FILARE panel visual parity with desktop monitor**: URLs under `/painel/` and `/tv/` auto-apply a panel display profile — desktop Chrome User-Agent, zoom locked to 100%, post-load resize sync for FILARE canvas scale, and optional debug overlay in Settings → Display. Native WebView now keeps `useWideViewPort=true` when `scalesPageToFit=false` (fixes cramped ticker and AVISO label).
+
+***
+
+
+## [1.2.21] - 2026-06-19
+
+### Fixed
+- **FILARE panel UI appeared smaller than in the browser**: Android WebView `scalesPageToFit` shrank the full page in overview mode on top of FILARE's own layout scale. Disabled `scalesPageToFit`, inject `width=device-width` viewport before first paint, and default **Disable User Zoom** to on for panel/TV kiosk use.
 
 ***
 

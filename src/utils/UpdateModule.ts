@@ -21,6 +21,7 @@ interface UpdateInfo {
   publishedAt: string;
   downloadUrl: string;
   isPrerelease?: boolean;
+  versionCode?: number;
 }
 
 export default {
@@ -32,7 +33,7 @@ export default {
   },
 
   /**
-   * Check for available updates on GitHub (stable channel only)
+   * Check for available updates via R2 manifest (latest.json).
    * No-op in Play Store builds.
    */
   checkForUpdates(): Promise<UpdateInfo> {
@@ -43,9 +44,9 @@ export default {
   },
 
   /**
-   * Check for updates with optional beta/pre-release channel support.
+   * Check for updates with optional beta channel (latest-beta.json).
    * No-op in Play Store builds.
-   * @param includeBeta - If true, includes pre-release versions
+   * @param includeBeta - If true, uses the beta manifest URL
    */
   checkForUpdatesWithChannel(includeBeta: boolean): Promise<UpdateInfo> {
     if (!ENABLE_SELF_UPDATE) {

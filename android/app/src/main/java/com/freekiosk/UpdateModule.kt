@@ -75,9 +75,7 @@ class UpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
     }
 
     /**
-     * Check for updates with optional beta/pre-release channel support.
-     * When includeBeta is false, uses /releases/latest (stable only).
-     * When includeBeta is true, uses /releases and picks the first release (beta or stable).
+     * Check for updates via R2 manifest JSON (latest.json or latest-beta.json).
      */
     @ReactMethod
     fun checkForUpdatesWithChannel(includeBeta: Boolean, promise: Promise) {
@@ -87,90 +85,74 @@ class UpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
         }
         Thread {
             try {
-                val apiUrl = if (includeBeta) {
-                    "https://api.github.com/repos/rushb-fr/freekiosk/releases?per_page=10"
+                val manifestUrl = if (includeBeta) {
+                    BuildConfig.UPDATE_MANIFEST_URL_BETA
                 } else {
-                    "https://api.github.com/repos/rushb-fr/freekiosk/releases/latest"
+                    BuildConfig.UPDATE_MANIFEST_URL
                 }
-                
-                android.util.Log.d("UpdateModule", "Checking updates: includeBeta=$includeBeta, url=$apiUrl")
-                
-                val url = URL(apiUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-                
-                val responseCode = connection.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    
-                    // Parse the release object
-                    val jsonObject = if (includeBeta) {
-                        // /releases returns an array — pick the first one (most recent, beta or stable)
-                        val releasesArray = org.json.JSONArray(response)
-                        if (releasesArray.length() == 0) {
-                            promise.reject("ERROR", "No releases found")
-                            connection.disconnect()
-                            return@Thread
-                        }
-                        releasesArray.getJSONObject(0)
-                    } else {
-                        // /releases/latest returns a single object
-                        JSONObject(response)
-                    }
-                    
-                    val tagName = jsonObject.getString("tag_name").removePrefix("v")
-                    val releaseName = jsonObject.optString("name", "")
-                    val releaseNotes = jsonObject.optString("body", "")
-                    val publishedAt = jsonObject.optString("published_at", "")
-                    val isPrerelease = jsonObject.optBoolean("prerelease", false)
-                    
-                    // Get the actual APK download URL from release assets
-                    var apkUrl = ""
-                    val assetsArray = jsonObject.optJSONArray("assets")
-                    if (assetsArray != null && assetsArray.length() > 0) {
-                        for (i in 0 until assetsArray.length()) {
-                            val asset = assetsArray.getJSONObject(i)
-                            val assetName = asset.getString("name")
-                            if (assetName.endsWith(".apk", ignoreCase = true)) {
-                                apkUrl = asset.getString("browser_download_url")
-                                android.util.Log.d("UpdateModule", "Found APK asset: $assetName")
-                                break
-                            }
-                        }
-                    }
-                    
-                    // Fallback to constructed URL if no asset found (should not happen)
-                    if (apkUrl.isEmpty()) {
-                        apkUrl = "https://github.com/rushb-fr/freekiosk/releases/download/v${tagName}/FreeKiosk-v${tagName}.apk"
-                        android.util.Log.w("UpdateModule", "No APK asset found, using fallback URL")
-                    }
-                    
-                    android.util.Log.d("UpdateModule", "Tag from GitHub: ${jsonObject.getString("tag_name")}")
-                    android.util.Log.d("UpdateModule", "Version after removePrefix: $tagName")
-                    android.util.Log.d("UpdateModule", "APK Download URL: $apkUrl")
-                    android.util.Log.d("UpdateModule", "Is pre-release: $isPrerelease")
-                    
-                    val result = Arguments.createMap().apply {
-                        putString("version", tagName)
-                        putString("name", releaseName)
-                        putString("notes", releaseNotes)
-                        putString("publishedAt", publishedAt)
-                        putString("downloadUrl", apkUrl)
-                        putBoolean("isPrerelease", isPrerelease)
-                    }
-                    
-                    android.util.Log.d("UpdateModule", "Update available: $tagName at $apkUrl (prerelease=$isPrerelease)")
-                    promise.resolve(result)
-                } else {
-                    promise.reject("ERROR", "GitHub API returned code: $responseCode")
+
+                if (manifestUrl.isBlank()) {
+                    promise.reject("ERROR", "Update manifest URL is not configured")
+                    return@Thread
                 }
-                connection.disconnect()
+
+                android.util.Log.d("UpdateModule", "Checking updates: includeBeta=$includeBeta, url=$manifestUrl")
+
+                val jsonObject = fetchUpdateManifest(manifestUrl)
+                val version = jsonObject.getString("version").removePrefix("v")
+                val downloadUrl = jsonObject.getString("downloadUrl")
+
+                if (downloadUrl.isBlank()) {
+                    promise.reject("ERROR", "Update manifest is missing downloadUrl")
+                    return@Thread
+                }
+
+                val result = Arguments.createMap().apply {
+                    putString("version", version)
+                    putString("name", jsonObject.optString("name", version))
+                    putString("notes", jsonObject.optString("notes", ""))
+                    putString("publishedAt", jsonObject.optString("publishedAt", ""))
+                    putString("downloadUrl", downloadUrl)
+                    putBoolean("isPrerelease", jsonObject.optBoolean("isPrerelease", includeBeta))
+                    if (jsonObject.has("versionCode")) {
+                        putInt("versionCode", jsonObject.getInt("versionCode"))
+                    }
+                }
+
+                android.util.Log.d("UpdateModule", "Update manifest: version=$version url=$downloadUrl")
+                promise.resolve(result)
             } catch (e: Exception) {
                 promise.reject("ERROR", "Failed to check for updates: ${e.message}")
             }
         }.start()
+    }
+
+    private fun fetchUpdateManifest(manifestUrl: String): JSONObject {
+        val url = URL(manifestUrl)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 10000
+        connection.readTimeout = 10000
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("User-Agent", "FreeKiosk-Updater")
+
+        try {
+            val responseCode = connection.responseCode
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw IllegalStateException("Update manifest returned HTTP $responseCode")
+            }
+
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(response)
+
+            if (!jsonObject.has("version") || !jsonObject.has("downloadUrl")) {
+                throw IllegalStateException("Update manifest must include version and downloadUrl")
+            }
+
+            return jsonObject
+        } finally {
+            connection.disconnect()
+        }
     }
 
     /**
@@ -247,7 +229,7 @@ class UpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
             try {
                 val downloadsDir = reactApplicationContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
                 downloadsDir?.listFiles()?.forEach { file ->
-                    if (file.name.startsWith("FreeKiosk-") && file.name.endsWith(".apk")) {
+                    if (file.name.startsWith("wdkiosk-") && file.name.endsWith(".apk")) {
                         file.delete()
                         android.util.Log.d("UpdateModule", "Cleaned up old APK: ${file.name}")
                     }
@@ -256,7 +238,7 @@ class UpdateModule(reactContext: ReactApplicationContext) : ReactContextBaseJava
                 android.util.Log.w("UpdateModule", "Failed to clean up old APKs: ${e.message}")
             }
             
-            val fileName = "FreeKiosk-${version}.apk"
+            val fileName = "wdkiosk-v${version}.apk"
             val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
                 setTitle("FreeKiosk Update")
                 setDescription("Downloading version $version")

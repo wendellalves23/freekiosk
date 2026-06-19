@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Text, NativeEventEmitter, NativeModules, AppState, DeviceEventEmitter, Dimensions, Pressable, BackHandler, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNBrightness from '../utils/BrightnessModule';
@@ -28,6 +28,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from '../components/Icon';
 import { revokeSettingsAccess } from '../utils/authState';
+import {
+  appendFilareLowMemoryParam,
+  isFilarePanelProfileActive,
+  resolveEffectiveFeatureFlags,
+  type FilarePanelProfileSettings,
+} from '../utils/filarePanelProfile';
+import { httpServer } from '../utils/HttpServerModule';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { HttpServerModule } = NativeModules;
@@ -40,6 +47,42 @@ interface KioskScreenProps {
 
 /** Duration (ms) the motion pre-check window runs before activating the screensaver. */
 const MOTION_PRE_CHECK_DELAY_MS = 10_000;
+
+/**
+ * WebView tap-anywhere uses a native 1×1 overlay (FLAG_WATCH_OUTSIDE_TOUCH) so N-tap
+ * works even when injected JS cannot see touches (FILARE panel, strict SPAs, loading overlay).
+ */
+async function syncWebViewTapOverlay(
+  tapCount: number,
+  tapTimeout: number,
+  returnMode: string,
+  returnButtonPosition: string,
+  allowNotifications: boolean,
+): Promise<void> {
+  if (returnMode !== 'tap_anywhere') {
+    try {
+      await OverlayServiceModule.stopOverlayService();
+    } catch {
+      // not running
+    }
+    return;
+  }
+
+  try {
+    await OverlayServiceModule.startOverlayService(
+      tapCount,
+      tapTimeout,
+      returnMode,
+      returnButtonPosition,
+      null,
+      false,
+      allowNotifications,
+    );
+    console.log('[KioskScreen] Tap-anywhere overlay started for webview mode');
+  } catch (error) {
+    console.warn('[KioskScreen] Failed to start webview tap overlay:', error);
+  }
+}
 
 const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const isFocused = useIsFocused();
@@ -105,8 +148,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const TAP_PROXIMITY_RADIUS = 80; // Taps must be within 80px of first tap
   
   // Return button settings (WebView + Multi-app grid mode)
-  // WebView: N-tap detection via onUserInteraction callback
-  // Multi-app grid: N-tap detection handled directly by ExternalAppOverlay
+  // WebView tap_anywhere: native OverlayService (FLAG_WATCH_OUTSIDE_TOUCH)
+  // WebView button mode + dashboard grid: onUserInteraction / on-screen ↩ button
   const [returnButtonVisible, setReturnButtonVisible] = useState<boolean>(false);
   const [returnTapCount, setReturnTapCount] = useState<number>(5);
   const [returnTapTimeout, setReturnTapTimeout] = useState<number>(1500);
@@ -192,7 +235,14 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const [printEnabled, setPrintEnabled] = useState<boolean>(false);
   const [printPaperSize, setPrintPaperSize] = useState<string>('A4');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
-  const [disableUserZoom, setDisableUserZoom] = useState<boolean>(false);
+  const [disableUserZoom, setDisableUserZoom] = useState<boolean>(true);
+  const [panelDebugOverlay, setPanelDebugOverlay] = useState<boolean>(false);
+  const [filarePanelProfileEnabled, setFilarePanelProfileEnabled] = useState<boolean>(false);
+  const [filarePanelProfileLowMemoryUrl, setFilarePanelProfileLowMemoryUrl] = useState<boolean>(true);
+  const [filarePanelProfileAllowRestApi, setFilarePanelProfileAllowRestApi] = useState<boolean>(false);
+  const [filarePanelProfileAllowMqtt, setFilarePanelProfileAllowMqtt] = useState<boolean>(false);
+  const [storedRestApiEnabled, setStoredRestApiEnabled] = useState<boolean>(false);
+  const [storedMqttEnabled, setStoredMqttEnabled] = useState<boolean>(false);
   const [customUserAgent, setCustomUserAgent] = useState<string>('');
   const [basicAuthUsername, setBasicAuthUsername] = useState<string>('');
   const [basicAuthPassword, setBasicAuthPassword] = useState<string>('');
@@ -209,6 +259,110 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const [mediaPlayerTransition, setMediaPlayerTransition] = useState<boolean>(true);
   const [mediaPlayerTransitionDuration, setMediaPlayerTransitionDuration] = useState<number>(500);
   const [mediaPlayerMute, setMediaPlayerMute] = useState<boolean>(false);
+
+  const filareProfileSettings = useMemo(
+    (): FilarePanelProfileSettings => ({
+      enabled: filarePanelProfileEnabled,
+      appendLowMemoryParam: filarePanelProfileLowMemoryUrl,
+      allowRestApi: filarePanelProfileAllowRestApi,
+      allowMqtt: filarePanelProfileAllowMqtt,
+    }),
+    [
+      filarePanelProfileEnabled,
+      filarePanelProfileLowMemoryUrl,
+      filarePanelProfileAllowRestApi,
+      filarePanelProfileAllowMqtt,
+    ],
+  );
+
+  const effectiveRuntime = useMemo(() => {
+    const stored = {
+      restApiEnabled: storedRestApiEnabled,
+      mqttEnabled: storedMqttEnabled,
+      pdfViewerEnabled,
+      urlRotationEnabled,
+      urlPlannerEnabled,
+      screensaverEnabled,
+      motionEnabled,
+      inactivityReturnEnabled,
+      panelDebugOverlay,
+      statusBarEnabled,
+    };
+    const effective = resolveEffectiveFeatureFlags(filareProfileSettings, url, stored);
+    const profileActive = isFilarePanelProfileActive(filarePanelProfileEnabled, url);
+    const webViewUrl = appendFilareLowMemoryParam(
+      url,
+      profileActive && filarePanelProfileLowMemoryUrl,
+    );
+    return { ...effective, profileActive, webViewUrl };
+  }, [
+    filareProfileSettings,
+    url,
+    storedRestApiEnabled,
+    storedMqttEnabled,
+    pdfViewerEnabled,
+    urlRotationEnabled,
+    urlPlannerEnabled,
+    screensaverEnabled,
+    motionEnabled,
+    inactivityReturnEnabled,
+    panelDebugOverlay,
+    statusBarEnabled,
+    filarePanelProfileLowMemoryUrl,
+    filarePanelProfileEnabled,
+  ]);
+
+  const {
+    restApiEnabled: effectiveRestApiEnabled,
+    mqttEnabled: effectiveMqttEnabled,
+    pdfViewerEnabled: effectivePdfViewerEnabled,
+    urlRotationEnabled: effectiveUrlRotationEnabled,
+    urlPlannerEnabled: effectiveUrlPlannerEnabled,
+    screensaverEnabled: effectiveScreensaverEnabled,
+    motionEnabled: effectiveMotionEnabled,
+    inactivityReturnEnabled: effectiveInactivityReturnEnabled,
+    panelDebugOverlay: effectivePanelDebugOverlay,
+    statusBarEnabled: effectiveStatusBarEnabled,
+    profileActive: filarePanelProfileActive,
+    webViewUrl,
+  } = effectiveRuntime;
+
+  const effectiveRuntimeRef = useRef(effectiveRuntime);
+  useEffect(() => {
+    effectiveRuntimeRef.current = effectiveRuntime;
+  }, [effectiveRuntime]);
+
+  const syncFilareProfileNetworkServices = useCallback(
+    async (effectiveRestApi: boolean, effectiveMqtt: boolean) => {
+      try {
+        const isRunning = await httpServer.isRunning();
+        if (effectiveRestApi) {
+          if (!isRunning) {
+            await ApiService.autoStart();
+          }
+        } else if (isRunning) {
+          await httpServer.stopServer();
+        }
+      } catch (error) {
+        console.error('[KioskScreen] REST API sync error:', error);
+      }
+
+      try {
+        if (effectiveMqtt) {
+          await ApiService.autoStartMqtt();
+        } else {
+          await ApiService.stopMqtt();
+        }
+      } catch (error) {
+        console.log('[KioskScreen] MQTT sync skipped:', (error as Error).message);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void syncFilareProfileNetworkServices(effectiveRestApiEnabled, effectiveMqttEnabled);
+  }, [effectiveRestApiEnabled, effectiveMqttEnabled, syncFilareProfileNetworkServices]);
 
   // AppState listener - detects when the app returns to the foreground
   useEffect(() => {
@@ -639,7 +793,6 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
 
           if (mode === 'webview') {
             // Stop external-app services before switching back to webview
-            try { await OverlayServiceModule.stopOverlayService(); } catch {}
             try { await AppLauncherModule.stopBackgroundMonitor(); } catch {}
             setIsAppLaunched(false);
             setDisplayMode('webview');
@@ -649,6 +802,12 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
               setWebViewKey(k => k + 1);
               await StorageService.saveUrl(target);
             }
+            const tapCount = await StorageService.getReturnTapCount();
+            const tapTimeout = await StorageService.getReturnTapTimeout();
+            const retMode = await StorageService.getReturnMode();
+            const retPos = await StorageService.getReturnButtonPosition();
+            const allowNotif = await StorageService.getAllowNotifications();
+            await syncWebViewTapOverlay(tapCount, tapTimeout, retMode, retPos, allowNotif);
             console.log('[API] Switched to webview mode', target ?? '');
 
           } else if (mode === 'external_app' && target) {
@@ -684,16 +843,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         },
       });
       
-      // Auto-start the API server if enabled
-      await ApiService.autoStart();
-
-      // Auto-start MQTT client if enabled
-      try {
-        await ApiService.autoStartMqtt();
-      } catch (e) {
-        // Expected when MQTT is disabled or not configured
-        console.log('ApiService: MQTT auto-start skipped:', (e as Error).message);
-      }
+      // Network services start/stop via syncFilareProfileNetworkServices after loadSettings
     };
 
     initApiService();
@@ -702,6 +852,9 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     const mqttAppStateSubscription = AppState.addEventListener('change', async (nextState) => {
       if (nextState === 'active') {
         try {
+          if (!effectiveRuntimeRef.current.mqttEnabled) {
+            return;
+          }
           const connected = await mqttClient.isConnected();
           if (!connected) {
             console.log('[KioskScreen] App returned to foreground, MQTT disconnected — reconnecting...');
@@ -954,7 +1107,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const wasExternalAppScreensaverRef = useRef(false);
   useEffect(() => {
     if (displayMode !== 'external_app') return;
-    if (!screensaverEnabled) return;
+    if (!effectiveScreensaverEnabled) return;
     if (isScreensaverActive) {
       wasExternalAppScreensaverRef.current = true;
       KioskModule.bringToFront().catch(() => {});
@@ -964,16 +1117,16 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         launchExternalApp(externalAppPackage);
       }
     }
-  }, [isScreensaverActive, screensaverEnabled, displayMode, externalAppPackage]);
+  }, [isScreensaverActive, effectiveScreensaverEnabled, displayMode, externalAppPackage]);
 
   useEffect(() => {
-    if (screensaverEnabled && inactivityEnabled) {
+    if (effectiveScreensaverEnabled && inactivityEnabled) {
       resetTimer();
     } else {
       clearTimer();
       setIsScreensaverActive(false);
     }
-  }, [screensaverEnabled, inactivityEnabled, inactivityDelay]);
+  }, [effectiveScreensaverEnabled, inactivityEnabled, inactivityDelay]);
 
   // URL Rotation effect
   useEffect(() => {
@@ -987,7 +1140,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     // AND when planner is not active (planner has priority)
     if (
       displayMode === 'webview' &&
-      urlRotationEnabled &&
+      effectiveUrlRotationEnabled &&
       !dashboardModeEnabled &&
       urlRotationList.length >= 2 &&
       urlRotationInterval >= 5000 &&
@@ -1014,7 +1167,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         urlRotationTimerRef.current = null;
       }
     };
-  }, [displayMode, urlRotationEnabled, dashboardModeEnabled, urlRotationList, urlRotationInterval, activeScheduledEvent]);
+  }, [displayMode, effectiveUrlRotationEnabled, dashboardModeEnabled, urlRotationList, urlRotationInterval, activeScheduledEvent]);
 
   // URL Planner effect - checks every minute for scheduled events
   useEffect(() => {
@@ -1024,7 +1177,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       urlPlannerTimerRef.current = null;
     }
     
-    if (displayMode !== 'webview' || !urlPlannerEnabled || urlPlannerEvents.length === 0) {
+    if (displayMode !== 'webview' || !effectiveUrlPlannerEnabled || urlPlannerEvents.length === 0) {
       setActiveScheduledEvent(null);
       return;
     }
@@ -1051,7 +1204,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         setActiveScheduledEvent(null);
         if (dashboardModeEnabled) {
           setDashboardShowGrid(true);
-        } else if (!urlRotationEnabled || urlRotationList.length < 2) {
+        } else if (!effectiveUrlRotationEnabled || urlRotationList.length < 2) {
           // Restore base URL or let rotation take over
           setUrl(baseUrl);
           setWebViewKey(k => k + 1);
@@ -1071,7 +1224,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         urlPlannerTimerRef.current = null;
       }
     };
-  }, [displayMode, urlPlannerEnabled, urlPlannerEvents, baseUrl, urlRotationEnabled, urlRotationList.length, dashboardModeEnabled]);
+  }, [displayMode, effectiveUrlPlannerEnabled, urlPlannerEvents, baseUrl, effectiveUrlRotationEnabled, urlRotationList.length, dashboardModeEnabled]);
 
   // ==================== Screen Sleep Scheduler ====================
   // Strategy:
@@ -1328,7 +1481,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     const screensaverActivityListener = eventEmitter.addListener(
       'screensaverActivity',
       () => {
-        if (displayMode === 'external_app') {
+        if (displayMode === 'external_app' || displayMode === 'webview') {
           resetTimer();
         }
       }
@@ -1623,8 +1776,11 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       setZoomLevel(savedZoomLevel);
 
       // Load Disable User Zoom
-      const savedDisableUserZoom = bool(K.DISABLE_USER_ZOOM, false);
+      const savedDisableUserZoom = bool(K.DISABLE_USER_ZOOM, true);
       setDisableUserZoom(savedDisableUserZoom);
+
+      const savedPanelDebugOverlay = bool(K.PANEL_DEBUG_OVERLAY, false);
+      setPanelDebugOverlay(savedPanelDebugOverlay);
 
       // Load Custom User Agent
       const savedCustomUserAgent = str(K.CUSTOM_USER_AGENT) ?? '';
@@ -1710,14 +1866,16 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         await BlockingOverlayModule.setEnabled(false);
       }
       
-      // WebView mode: 5-tap detection is handled via onUserInteraction callback
-      // No need for native overlay, stop it if running
+      // WebView tap-anywhere: native overlay detects N-tap without relying on page JS.
+      // Button mode uses the on-screen ↩ control in KioskScreen instead.
       if (savedDisplayMode === 'webview') {
-        try {
-          await OverlayServiceModule.stopOverlayService();
-        } catch (e) {
-          // Silent fail - might not be running
-        }
+        await syncWebViewTapOverlay(
+          savedReturnTapCount,
+          savedReturnTapTimeout,
+          savedReturnMode,
+          savedReturnButtonPosition,
+          savedAllowNotifications,
+        );
         // Stop background monitor — it's only relevant in external_app mode
         try {
           await AppLauncherModule.stopBackgroundMonitor();
@@ -1870,6 +2028,44 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       } else {
         console.log('[KioskScreen] NOT launching external app - displayMode:', savedDisplayMode, 'package:', savedExternalAppPackage);
       }
+
+      const savedFilareProfileEnabled = bool(K.FILARE_PANEL_PROFILE_ENABLED, false);
+      const savedFilareLowMemoryUrl = bool(K.FILARE_PANEL_PROFILE_LOW_MEMORY_URL, true);
+      const savedFilareAllowRestApi = bool(K.FILARE_PANEL_PROFILE_ALLOW_REST_API, false);
+      const savedFilareAllowMqtt = bool(K.FILARE_PANEL_PROFILE_ALLOW_MQTT, false);
+      const savedStoredRestApi = bool(K.REST_API_ENABLED, false);
+      const savedStoredMqtt = bool(K.MQTT_ENABLED, false);
+
+      setFilarePanelProfileEnabled(savedFilareProfileEnabled);
+      setFilarePanelProfileLowMemoryUrl(savedFilareLowMemoryUrl);
+      setFilarePanelProfileAllowRestApi(savedFilareAllowRestApi);
+      setFilarePanelProfileAllowMqtt(savedFilareAllowMqtt);
+      setStoredRestApiEnabled(savedStoredRestApi);
+      setStoredMqttEnabled(savedStoredMqtt);
+
+      const profileSettings: FilarePanelProfileSettings = {
+        enabled: savedFilareProfileEnabled,
+        appendLowMemoryParam: savedFilareLowMemoryUrl,
+        allowRestApi: savedFilareAllowRestApi,
+        allowMqtt: savedFilareAllowMqtt,
+      };
+      const kioskUrlForProfile = savedUrl ?? '';
+      const effectiveFlags = resolveEffectiveFeatureFlags(profileSettings, kioskUrlForProfile, {
+        restApiEnabled: savedStoredRestApi,
+        mqttEnabled: savedStoredMqtt,
+        pdfViewerEnabled: savedPdfViewerEnabled,
+        urlRotationEnabled: savedUrlRotationEnabled,
+        urlPlannerEnabled: savedUrlPlannerEnabled,
+        screensaverEnabled: savedScreensaverEnabled,
+        motionEnabled: savedMotionEnabled,
+        inactivityReturnEnabled: savedInactivityReturnEnabled,
+        panelDebugOverlay: savedPanelDebugOverlay,
+        statusBarEnabled: savedStatusBarEnabled,
+      });
+      await syncFilareProfileNetworkServices(
+        effectiveFlags.restApiEnabled,
+        effectiveFlags.mqttEnabled,
+      );
     } catch (error) {
       console.error('[KioskScreen] loadSettings error:', error);
     }
@@ -1879,10 +2075,10 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     clearTimer();
     // Don't start inactivity timer if screen is in scheduled sleep
     if (isScheduledSleep) return;
-    if (screensaverEnabled && inactivityEnabled) {
+    if (effectiveScreensaverEnabled && inactivityEnabled) {
       timerRef.current = setTimeout(() => {
         // If motion detection is enabled, watch for movement before activating the screensaver
-        if (motionEnabled) {
+        if (effectiveMotionEnabled) {
           console.log('[KioskScreen] Inactivity timer expired — starting motion pre-check');
           setIsPreCheckingMotion(true);
           // Start a pre-check window; if no motion is detected within it, activate the screensaver
@@ -1937,11 +2133,11 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   useEffect(() => {
     clearInactivityReturnTimer();
 
-    console.log(`[InactivityReturn] useEffect fired — enabled=${inactivityReturnEnabled}, displayMode=${displayMode}, baseUrl="${baseUrl}", url="${url}", screensaver=${isScreensaverActive}, rotation=${urlRotationEnabled}, delay=${inactivityReturnDelay}`);
+    console.log(`[InactivityReturn] useEffect fired — enabled=${effectiveInactivityReturnEnabled}, displayMode=${displayMode}, baseUrl="${baseUrl}", url="${url}", screensaver=${isScreensaverActive}, rotation=${effectiveUrlRotationEnabled}, delay=${inactivityReturnDelay}`);
 
     // Guard: only active in webview mode with a valid base URL (or dashboard mode)
-    if (!inactivityReturnEnabled || displayMode !== 'webview' || (!baseUrl && !dashboardModeEnabled)) {
-      console.log(`[InactivityReturn] BLOCKED: enabled=${inactivityReturnEnabled}, mode=${displayMode}, baseUrl="${baseUrl}", dashboard=${dashboardModeEnabled}`);
+    if (!effectiveInactivityReturnEnabled || displayMode !== 'webview' || (!baseUrl && !dashboardModeEnabled)) {
+      console.log(`[InactivityReturn] BLOCKED: enabled=${effectiveInactivityReturnEnabled}, mode=${displayMode}, baseUrl="${baseUrl}", dashboard=${dashboardModeEnabled}`);
       return;
     }
     // In dashboard mode, only arm timer when user is viewing a tile (not on the grid)
@@ -1955,7 +2151,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       return;
     }
     // Don't start during URL rotation or planner
-    if (urlRotationEnabled && urlRotationList.length >= 2) {
+    if (effectiveUrlRotationEnabled && urlRotationList.length >= 2) {
       console.log('[InactivityReturn] BLOCKED: URL rotation active');
       return;
     }
@@ -2014,7 +2210,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     inactivityReturnTimerRef.current = setTimeout(tick, delayMs);
 
     return () => clearInactivityReturnTimer();
-  }, [inactivityReturnEnabled, inactivityReturnDelay, inactivityReturnClearCache, inactivityReturnScrollTop, displayMode, baseUrl, url, isScreensaverActive, urlRotationEnabled, urlRotationList.length, activeScheduledEvent, dashboardModeEnabled, dashboardShowGrid]);
+  }, [effectiveInactivityReturnEnabled, inactivityReturnDelay, inactivityReturnClearCache, inactivityReturnScrollTop, displayMode, baseUrl, url, isScreensaverActive, effectiveUrlRotationEnabled, urlRotationList.length, activeScheduledEvent, dashboardModeEnabled, dashboardShowGrid]);
 
   // Ref for 5-tap debounce (prevent multiple events per tap)
   const lastTapTimeRef = useRef<number>(0);
@@ -2160,7 +2356,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         tapCountRef.current = 0;
       }, returnTapTimeout - (now - lastTapTimeRef.current));
     }
-  }, [displayMode, navigation, resetTimer, clearTimer, markUserInteraction, returnTapCount, returnTapTimeout, defaultBrightness, TAP_PROXIMITY_RADIUS, exitScheduledSleep]);
+  }, [displayMode, navigation, resetTimer, clearTimer, markUserInteraction, returnTapCount, returnTapTimeout, returnMode, defaultBrightness, TAP_PROXIMITY_RADIUS, exitScheduledSleep]);
 
 
   const onScreensaverTap = useCallback(async () => {
@@ -2395,13 +2591,13 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       {displayMode === 'webview' ? (
         <>
-          {(statusBarEnabled || dashboardModeEnabled) && (
+          {(effectiveStatusBarEnabled || dashboardModeEnabled) && (
             <StatusBar
-              showBattery={statusBarEnabled && showBattery}
-              showWifi={statusBarEnabled && showWifi}
-              showBluetooth={statusBarEnabled && showBluetooth}
-              showVolume={statusBarEnabled && showVolume}
-              showTime={statusBarEnabled && showTime}
+              showBattery={effectiveStatusBarEnabled && showBattery}
+              showWifi={effectiveStatusBarEnabled && showWifi}
+              showBluetooth={effectiveStatusBarEnabled && showBluetooth}
+              showVolume={effectiveStatusBarEnabled && showVolume}
+              showTime={effectiveStatusBarEnabled && showTime}
               theme={statusBarTheme}
               dashboardMode={dashboardModeEnabled}
               navCanGoBack={navState.canGoBack}
@@ -2427,7 +2623,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
             <WebViewComponent
               ref={webViewRef}
               key={webViewKey}
-              url={url}
+              url={webViewUrl}
               autoReload={autoReload}
               keyboardMode={keyboardMode}
               onUserInteraction={onUserInteraction}
@@ -2450,11 +2646,13 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
               urlFilterMode={urlFilterEnabled ? urlFilterMode : undefined}
               urlFilterPatterns={urlFilterEnabled ? urlFilterList : undefined}
               urlFilterShowFeedback={urlFilterShowFeedback}
-              pdfViewerEnabled={pdfViewerEnabled}
+              pdfViewerEnabled={effectivePdfViewerEnabled}
               printEnabled={printEnabled}
               printPaperSize={printPaperSize}
               zoomLevel={zoomLevel}
               disableUserZoom={disableUserZoom}
+              panelDebugOverlay={effectivePanelDebugOverlay}
+              filarePanelProfileActive={filarePanelProfileActive}
               customUserAgent={customUserAgent}
               basicAuthCredential={
                 basicAuthUsername
@@ -2518,7 +2716,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
 
       {/* Motion Detector - Active during pre-check OR when screensaver is ON (only if screen is focused) */}
       <MotionDetector
-        enabled={isFocused && (motionAlwaysOn || (motionEnabled && (isPreCheckingMotion || isScreensaverActive)))}
+        enabled={isFocused && (motionAlwaysOn || (effectiveMotionEnabled && (isPreCheckingMotion || isScreensaverActive)))}
         onMotionDetected={onMotionDetected}
         sensitivity={motionSensitivity}
         cameraPosition={motionCameraPosition}
@@ -2563,7 +2761,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       )}
 
       {/* Screensaver overlay - dim mode uses black/transparent based on brightness; URL/video modes render content */}
-      {isScreensaverActive && screensaverEnabled && (
+      {isScreensaverActive && effectiveScreensaverEnabled && (
         <TouchableOpacity
           style={[
             styles.screensaverOverlay,

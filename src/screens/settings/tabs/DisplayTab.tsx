@@ -18,6 +18,7 @@ import { Colors, Spacing, Typography } from '../../../theme';
 import { ScreenScheduleRule } from '../../../types/screenScheduler';
 import type { MediaItem } from '../../../types/mediaPlayer';
 import { getMediaDisplayName } from '../../../types/mediaPlayer';
+import { isFilarePanelUrl } from '../../../utils/filarePanelUrl';
 
 interface DisplayTabProps {
   displayMode: 'webview' | 'external_app' | 'media_player';
@@ -73,6 +74,9 @@ interface DisplayTabProps {
   onZoomLevelChange: (value: number) => void;
   disableUserZoom: boolean;
   onDisableUserZoomChange: (value: boolean) => void;
+  panelDebugOverlay: boolean;
+  onPanelDebugOverlayChange: (value: boolean) => void;
+  kioskUrl: string;
   
   // Custom User Agent
   customUserAgent: string;
@@ -166,6 +170,9 @@ const DisplayTab: React.FC<DisplayTabProps> = ({
   onZoomLevelChange,
   disableUserZoom,
   onDisableUserZoomChange,
+  panelDebugOverlay,
+  onPanelDebugOverlayChange,
+  kioskUrl,
   customUserAgent,
   onCustomUserAgentChange,
   screensaverEnabled,
@@ -225,6 +232,7 @@ const DisplayTab: React.FC<DisplayTabProps> = ({
 
   // Check whether the selected camera is available on this device
   const selectedCameraAvailable = availableCameras.some(cam => cam.position === motionCameraPosition);
+  const filarePanelUrl = isFilarePanelUrl(kioskUrl);
 
   return (
     <View>
@@ -838,9 +846,16 @@ const DisplayTab: React.FC<DisplayTabProps> = ({
       {/* Web Page Zoom - Only in WebView mode */}
       {displayMode === 'webview' && (
         <SettingsSection title="Web Page Zoom" icon="magnify">
+          {filarePanelUrl && (
+            <SettingsInfoBox variant="info">
+              <Text style={styles.infoText}>
+                FILARE panel detected: zoom is locked to 100%, desktop User-Agent is applied automatically, and Disable User Zoom is recommended. Turn off the Status Bar above for full-screen parity with a desktop monitor.
+              </Text>
+            </SettingsInfoBox>
+          )}
           <SettingsSlider
             label=""
-            hint={`Zoom level: ${zoomLevel}% — Adjusts how web pages are rendered. 100% matches Chrome's default.`}
+            hint={`Zoom level: ${zoomLevel}% — For the FILARE panel keep 100%. Other values scale the whole page via CSS zoom.`}
             value={zoomLevel}
             onValueChange={(val) => onZoomLevelChange(Math.round(val))}
             minimumValue={50}
@@ -854,7 +869,14 @@ const DisplayTab: React.FC<DisplayTabProps> = ({
               { label: '150%', value: 150 },
             ]}
           />
-          {zoomLevel !== 100 && (
+          {filarePanelUrl && zoomLevel !== 100 && (
+            <SettingsInfoBox variant="warning">
+              <Text style={styles.infoText}>
+                Zoom is {zoomLevel}% but the FILARE panel profile forces 100% at runtime. Tap the 100% preset to align saved settings.
+              </Text>
+            </SettingsInfoBox>
+          )}
+          {zoomLevel !== 100 && !filarePanelUrl && (
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
                 🔍 Zoom is set to {zoomLevel}%. Tap the "100%" preset to reset to default.
@@ -863,16 +885,31 @@ const DisplayTab: React.FC<DisplayTabProps> = ({
           )}
           <SettingsSwitch
             label="Disable User Zoom"
-            hint="Prevent pinch-to-zoom and double-tap zoom on the web page. The admin zoom level above still applies."
+            hint="Recommended for TV/panel mode: blocks pinch-to-zoom and double-tap zoom. Admin zoom above still applies."
             value={disableUserZoom}
             onValueChange={onDisableUserZoomChange}
           />
+          {filarePanelUrl && (
+            <SettingsSwitch
+              label="Panel debug overlay"
+              hint="Shows innerWidth, innerHeight, DPR and UA on the FILARE panel for layout troubleshooting."
+              value={panelDebugOverlay}
+              onValueChange={onPanelDebugOverlayChange}
+            />
+          )}
         </SettingsSection>
       )}
       
       {/* Custom User Agent - Only in WebView mode */}
       {displayMode === 'webview' && (
         <SettingsSection title="User Agent" icon="web">
+          {filarePanelUrl && !customUserAgent.trim() && (
+            <SettingsInfoBox variant="info">
+              <Text style={styles.infoText}>
+                FILARE panel profile uses a desktop Chrome User-Agent automatically. Set a custom UA below only if your host requires a specific string.
+              </Text>
+            </SettingsInfoBox>
+          )}
           <SettingsInput
             label="Custom User Agent"
             hint={customUserAgent.trim() ? 'Custom UA active. Clear the field to use the default.' : 'Leave empty to use the default modern Chrome User Agent. Some hosting providers (e.g. SiteGround) block old or suspicious User Agents.'}
