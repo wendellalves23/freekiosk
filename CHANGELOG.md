@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Marca WD Kiosk**: Nome exibido no launcher Android, telas internas e manifest OTA alterado de FreeKiosk para **WD Kiosk**.
+
+***
+
+## [1.2.26] - 2026-06-19
+
 ### Added
 - **Tradução pt-BR (tela do kiosk)**: Boas-vindas, carregamento, erros de WebView, modo app externo, player de mídia e grade do painel em português.
 

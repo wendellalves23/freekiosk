@@ -149,7 +149,7 @@ function buildManifest({ version, versionCode, downloadUrl, notes, isPrerelease 
   return {
     version,
     versionCode,
-    name: `FreeKiosk ${version}`,
+    name: `WD Kiosk ${version}`,
     notes,
     publishedAt: new Date().toISOString(),
     downloadUrl,

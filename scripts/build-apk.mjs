@@ -22,7 +22,7 @@ const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function main() {
   const version = readPackageVersion(repoRoot);
-  console.log(`==> Building FreeKiosk v${version}`);
+  console.log(`==> Building WD Kiosk v${version}`);
 
   if (!resolveJavaHome(repoRoot)) {
     console.log("==> JDK 17 not found — downloading Temurin into .jdk/ ...");

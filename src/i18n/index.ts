@@ -142,7 +142,7 @@ const messages: MessageTree = {
     passwordPlaceholder: 'Senha',
     passwordKeychainHint: 'Armazenada no Keychain do dispositivo (não em texto puro)',
     basicAuthInfo:
-      'Quando um site retorna 401 Unauthorized, o FreeKiosk responde automaticamente com essas credenciais. Deixe o usuário vazio para desativar.',
+      'Quando um site retorna 401 Unauthorized, o WD Kiosk responde automaticamente com essas credenciais. Deixe o usuário vazio para desativar.',
     urlRotation: 'Rotação de URL',
     urlRotationDashboardDisabled: 'Rotação de URL desativada no modo painel.',
     enableRotation: 'Ativar rotação',
@@ -179,9 +179,9 @@ const messages: MessageTree = {
     usageAccessGranted: '✓ Acesso de uso concedido',
     usageAccessRequired: '⚠️ Acesso de uso necessário',
     usageAccessGrantedHint:
-      'Monitoramento de relançamento automático ativo. O FreeKiosk detecta quando o app externo fecha.',
+      'Monitoramento de relançamento automático ativo. O WD Kiosk detecta quando o app externo fecha.',
     usageAccessRequiredHint:
-      'Necessário para relançamento automático. Sem isso, o FreeKiosk não detecta quando o app externo fecha ou trava.',
+      'Necessário para relançamento automático. Sem isso, o WD Kiosk não detecta quando o app externo fecha ou trava.',
     grantUsageAccess: 'Conceder acesso de uso',
     passwordSection: 'Senha',
     advancedPasswordMode: 'Modo senha avançado',
@@ -264,7 +264,7 @@ const messages: MessageTree = {
     allowMqtt: 'Permitir MQTT',
     allowMqttHint: 'Mantém cliente MQTT (Avançado) se já estiver ligado',
     profileDisabledInfo:
-      'Com o perfil ativo ficam desligados: PDF viewer, rotação/planner de URL, screensaver, detecção de movimento, retorno por inatividade, status bar do FreeKiosk e overlay de debug. Tela sempre ligada e kiosk não são alterados.',
+      'Com o perfil ativo ficam desligados: PDF viewer, rotação/planner de URL, screensaver, detecção de movimento, retorno por inatividade, status bar do WD Kiosk e overlay de debug. Tela sempre ligada e kiosk não são alterados.',
   },
   security: {
     lockModeDisabled:
@@ -272,7 +272,7 @@ const messages: MessageTree = {
     screenPinningEnabled:
       'Fixação de tela ativa: só o gesto de 5 toques + PIN permite sair',
     noDeviceOwnerWarning:
-      'Sem Device Owner, o usuário pode sair via Voltar + apps recentes. Defina o FreeKiosk como Device Owner para bloqueio completo.',
+      'Sem Device Owner, o usuário pode sair via Voltar + apps recentes. Defina o WD Kiosk como Device Owner para bloqueio completo.',
     deviceOwnerRequiredExternal:
       'Device Owner obrigatório: o modo bloqueio não funciona em app externo sem privilégios de Device Owner.',
     lockModeExternalEnabled:
@@ -288,7 +288,7 @@ const messages: MessageTree = {
       'Exibe a barra de status nativa do Android (hora, bateria, conectividade) no app bloqueado. Também corrige áudio silenciado em alguns Samsung/OneUI no modo bloqueio.',
     autoLaunch: 'Inicialização automática',
     launchOnBoot: 'Abrir na inicialização',
-    launchOnBootHint: 'Abre o FreeKiosk automaticamente quando o dispositivo liga',
+    launchOnBootHint: 'Abre o WD Kiosk automaticamente quando o dispositivo liga',
     autoLaunchInfo:
       'Certifique-se de que a permissão "Aparecer sobre outros apps" está ativa nas configurações do sistema para inicialização confiável.',
     openSystemSettings: 'Abrir configurações do sistema',
@@ -379,7 +379,7 @@ const messages: MessageTree = {
     indicatorVisible: ' (indicador visual visível)',
     exitSection: 'Sair do aplicativo',
     exitInfo:
-      'Fecha o FreeKiosk e retorna ao launcher do Android. Use após desativar o modo bloqueio ou quando precisar trocar de app no TV box.',
+      'Fecha o WD Kiosk e retorna ao launcher do Android. Use após desativar o modo bloqueio ou quando precisar trocar de app no TV box.',
     exitButton: 'Sair do aplicativo',
     exitConfirmTitle: 'Sair do aplicativo',
     exitConfirmMessage:
@@ -390,7 +390,7 @@ const messages: MessageTree = {
   advanced: {
     resetAll: 'Redefinir todas as configurações',
     removeDeviceOwner: 'Remover Device Owner',
-    versionFooter: 'FreeKiosk v{{version}}',
+    versionFooter: 'WD Kiosk v{{version}}',
     updates: 'Atualizações',
     currentVersion: 'Versão atual',
     updateAvailable: '🎉 Atualização disponível',
@@ -419,13 +419,13 @@ const messages: MessageTree = {
     statusDisabled: '○ Desabilitado',
     whyNeeded: 'ℹ️ Por que isso é necessário?',
     whyNeededInfo:
-      'O serviço de acessibilidade permite ao FreeKiosk enviar entrada de teclado (controle remoto, texto) para apps externos.\n\nSem ele, a emulação de teclado só funciona dentro do WebView do FreeKiosk.',
+      'O serviço de acessibilidade permite ao WD Kiosk enviar entrada de teclado (controle remoto, texto) para apps externos.\n\nSem ele, a emulação de teclado só funciona dentro do WebView do WD Kiosk.',
     enableAutomatically: 'Habilitar automaticamente (Device Owner)',
     openAccessibilitySettings: 'Abrir configurações de acessibilidade',
     accessibilityHintDeviceOwner:
       'O modo Device Owner pode habilitar o serviço automaticamente se a permissão WRITE_SECURE_SETTINGS foi concedida via ADB. Caso contrário, habilite manualmente nas configurações do Android.',
     accessibilityHintDefault:
-      'Habilite "FreeKiosk" em Configurações → Acessibilidade → Serviços instalados.',
+      'Habilite "WD Kiosk" em Configurações → Acessibilidade → Serviços instalados.',
     keyboardEmulationAvailable:
       '✅ Emulação de teclado disponível para todos os apps (WebView + apps externos).',
     managedAppsAccessibility: '🔧 Acessibilidade de apps gerenciados',
@@ -436,7 +436,7 @@ const messages: MessageTree = {
       'Abre as configurações nativas do Android para alterar WiFi, volume, tela e mais. Útil quando o dispositivo não tem botões físicos de navegação.',
     kioskModeActive: '🔒 Modo kiosk ativo',
     kioskModeActiveInfo:
-      'O modo kiosk será pausado temporariamente para abrir as configurações do Android. Será reativado automaticamente ao retornar ao FreeKiosk.',
+      'O modo kiosk será pausado temporariamente para abrir as configurações do Android. Será reativado automaticamente ao retornar ao WD Kiosk.',
     openAndroidSettings: 'Abrir configurações do Android',
     wifi: '📶 WiFi',
     sound: '🔊 Som',
@@ -480,10 +480,10 @@ const messages: MessageTree = {
   display: {
     brightnessControl: 'Controle de brilho',
     appBrightnessControl: 'Controle de brilho pelo app',
-    appManagesBrightness: 'O FreeKiosk gerencia o brilho da tela',
+    appManagesBrightness: 'O WD Kiosk gerencia o brilho da tela',
     systemManagesBrightness: 'O sistema gerencia o brilho (Tasker, configurações Android, etc.)',
     brightnessSystemInfo:
-      '💡 O brilho é gerenciado pelo sistema. Ferramentas externas como o Tasker podem controlar o brilho sem interferência do FreeKiosk.',
+      '💡 O brilho é gerenciado pelo sistema. Ferramentas externas como o Tasker podem controlar o brilho sem interferência do WD Kiosk.',
     manualBrightness: 'Brilho manual',
     manualDisabledAuto: 'Desativado enquanto o brilho automático estiver ativo',
     manualBrightnessHint: 'Nível de brilho da tela (0% – 100%)',
@@ -566,7 +566,7 @@ const messages: MessageTree = {
     howItWorks: 'ℹ️ Como funciona',
     howItWorksLine1: '• Após {{minutes}} minuto(s) sem interação, o protetor de tela ativa',
     howItWorksExternalApp:
-      '• O FreeKiosk vem para frente para exibir o protetor; o app externo retoma ao acordar',
+      '• O WD Kiosk vem para frente para exibir o protetor; o app externo retoma ao acordar',
     howItWorksTouch: '• Toque na tela para acordar o dispositivo',
     howItWorksMotion: '• Movimento na frente da câmera também acorda a tela',
     howItWorksRestore: '• O brilho normal é restaurado automaticamente',
@@ -710,16 +710,16 @@ const messages: MessageTree = {
     downloadUrlUnavailable: 'URL de download indisponível.',
     installPermissionTitle: '⚠️ Permissão necessária',
     installPermissionMessage:
-      'O FreeKiosk precisa de permissão para instalar atualizações.\n\nAtive "Permitir desta fonte" na próxima tela e tente novamente.',
+      'O WD Kiosk precisa de permissão para instalar atualizações.\n\nAtive "Permitir desta fonte" na próxima tela e tente novamente.',
     settingsUnavailableTitle: 'Configurações indisponíveis',
     settingsUnavailableMessage:
-      'Este dispositivo não suporta habilitar instalação de apps pelas configurações.\n\nAlternativa: conecte via ADB e execute:\nadb install -r FreeKiosk-<versão>.apk',
+      'Este dispositivo não suporta habilitar instalação de apps pelas configurações.\n\nAlternativa: conecte via ADB e execute:\nadb install -r wdkiosk-v<versão>.apk',
     updateReadyTitle: '✅ Atualização pronta',
     updateReadyMessage:
       'A atualização foi baixada com sucesso. A tela de instalação deve aparecer em breve.\n\nSe nada acontecer:\n• Verifique o painel de notificações\n• Procure "Instalador de pacotes"\n• Conceda permissão de instalação se solicitado',
     installPermissionNeededTitle: '⚠️ Permissão de instalação necessária',
     installPermissionNeededMessage:
-      'A atualização foi baixada, mas não pode ser instalada.\n\nAtive "Instalar de fontes desconhecidas" para o FreeKiosk nas configurações do dispositivo e tente novamente.\n\nEm dispositivos restritos (ex.: Echo Show), use:\nadb install -r <apk>',
+      'A atualização foi baixada, mas não pode ser instalada.\n\nAtive "Instalar de fontes desconhecidas" para o WD Kiosk nas configurações do dispositivo e tente novamente.\n\nEm dispositivos restritos (ex.: Echo Show), use:\nadb install -r <apk>',
     resetConfirmTitle: 'Redefinir configurações',
     resetConfirmMessage:
       'Isso apagará TODAS as configurações e restaurará os padrões.\n\nContinuar?',
@@ -729,7 +729,7 @@ const messages: MessageTree = {
     removeDeviceOwnerMessage:
       'AVISO: Isso removerá os privilégios de Device Owner.\n\nVocê perderá:\n• Modo kiosk completo\n• Bloqueio de navegação\n• Proteção de bloqueio\n\nTodas as configurações serão redefinidas.\n\nContinuar?',
     removeDeviceOwnerSuccess:
-      'Device Owner removido!\n\nAgora você pode desinstalar o FreeKiosk normalmente.',
+      'Device Owner removido!\n\nAgora você pode desinstalar o WD Kiosk normalmente.',
     removeDeviceOwnerFailed: 'Falha: {{error}}',
     removeCertificateTitle: 'Remover certificado',
     removeCertificateMessage:
@@ -848,7 +848,7 @@ const messages: MessageTree = {
     notSupported: 'Não suportado',
     androidOnly: 'A busca de arquivos está disponível apenas no Android.',
     invalidBackup: '❌ Backup inválido',
-    invalidBackupMessage: 'O arquivo selecionado não é um backup válido do FreeKiosk.',
+    invalidBackupMessage: 'O arquivo selecionado não é um backup válido do WD Kiosk.',
     browseFailed: 'Falha ao procurar arquivo: {{error}}',
     restoreTitle: '⚠️ Restaurar configuração',
     restoreMessage: 'Isso substituirá todas as configurações atuais pelo backup.\n\nDeseja continuar?',
@@ -1070,7 +1070,7 @@ const messages: MessageTree = {
     dateBeforeStart: 'A data não pode ser anterior à data inicial',
   },
   kiosk: {
-    appName: 'FreeKiosk',
+    appName: 'WD Kiosk',
     welcomeSubtitle: 'Aplicativo kiosk profissional',
     featureSecure: 'Modo kiosk seguro',
     featurePerformance: 'Desempenho otimizado',
@@ -1094,7 +1094,7 @@ const messages: MessageTree = {
     waitingForApp: 'Aguardando aplicativo…',
     testModeBar: '🧪 Modo teste — botão Voltar retorna às configurações',
     testModeTitle: 'Modo teste ativo',
-    testModeText: 'Você pode usar o botão Voltar do Android para retornar ao FreeKiosk.',
+    testModeText: 'Você pode usar o botão Voltar do Android para retornar ao WD Kiosk.',
     returnToApp: '↩ Voltar ao aplicativo',
     settings: '⚙ Configurações',
     hint: '💡 Dica: no app externo, toque 5× no botão secreto para voltar aqui (posição configurável)',

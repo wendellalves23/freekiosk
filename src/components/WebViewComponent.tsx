@@ -730,7 +730,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
           }
         } else if (data.type === 'PRINT_REQUEST') {
           // Handle print request from window.print()
-          PrintModule.printWebView(data.title || 'FreeKiosk Print', data.paperSize || 'A4')
+          PrintModule.printWebView(data.title || 'WD Kiosk Print', data.paperSize || 'A4')
             .then(() => console.log('[WebView] Print job started'))
             .catch((err: any) => console.error('[WebView] Print failed:', err));
         } else if (data.type === 'PDF_VIEWER_CLOSE') {

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FreeKiosk</string>
-    <string name="accessibility_service_description">FreeKiosk uses this service to send keyboard input and remote control commands to apps running on this device. This is required for the REST API remote control feature to work in external app mode.</string>
-    <string name="boot_loading">Starting kiosk…</string>
+    <string name="app_name">WD Kiosk</string>
+    <string name="accessibility_service_description">O WD Kiosk usa este serviço para enviar entrada de teclado e comandos de controle remoto aos apps neste dispositivo. Necessário para o controle remoto via REST API no modo app externo.</string>
+    <string name="boot_loading">Iniciando kiosk…</string>
 </resources>
