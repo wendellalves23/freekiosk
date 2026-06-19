@@ -7,9 +7,18 @@ export const FILARE_PANEL_DESKTOP_USER_AGENT =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 const FILARE_PANEL_PATH = /\/painel\/[^/]+\/[^/]+/;
+const FILARE_TOTEM_PATH = /\/totem\/[^/]+\/[^/]+/;
 const FILARE_TV_PATH = /\/tv(?:\/|$)/;
 
-/** True when the URL loads a FILARE panel or TV signage surface. */
+function matchesFilareDevicePath(path: string): boolean {
+  return (
+    FILARE_PANEL_PATH.test(path) ||
+    FILARE_TOTEM_PATH.test(path) ||
+    FILARE_TV_PATH.test(path)
+  );
+}
+
+/** True when the URL loads a FILARE panel, totem, or TV signage surface. */
 export function isFilarePanelUrl(url: string): boolean {
   if (!url || url === 'about:blank') {
     return false;
@@ -17,8 +26,8 @@ export function isFilarePanelUrl(url: string): boolean {
 
   try {
     const path = new URL(url).pathname;
-    return FILARE_PANEL_PATH.test(path) || FILARE_TV_PATH.test(path);
+    return matchesFilareDevicePath(path);
   } catch {
-    return FILARE_PANEL_PATH.test(url) || FILARE_TV_PATH.test(url);
+    return matchesFilareDevicePath(url);
   }
 }

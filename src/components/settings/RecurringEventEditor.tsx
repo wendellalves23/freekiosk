@@ -20,6 +20,7 @@ import { ScheduledEvent, generateEventId, isValidTime, PRIORITY_LEVELS } from '.
 import { SettingsInput } from './index';
 import DaySelector from './DaySelector';
 import TimeInput from './TimeInput';
+import { t } from '../../i18n';
 
 interface RecurringEventEditorProps {
   visible: boolean;
@@ -79,22 +80,22 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
 
   const validate = (): string | null => {
     if (!name.trim()) {
-      return 'Please enter an event name';
+      return t('recurringEvent.enterName');
     }
     if (!url.trim()) {
-      return 'Please enter a URL';
+      return t('recurringEvent.enterUrl');
     }
     if (days.length === 0) {
-      return 'Please select at least one day';
+      return t('recurringEvent.selectDay');
     }
     if (!isValidTime(startTime)) {
-      return 'Please enter a valid start time (HH:MM)';
+      return t('recurringEvent.invalidStartTime');
     }
     if (!isValidTime(endTime)) {
-      return 'Please enter a valid end time (HH:MM)';
+      return t('recurringEvent.invalidEndTime');
     }
     if (startTime === endTime) {
-      return 'Start time and end time cannot be the same';
+      return t('recurringEvent.sameTime');
     }
     return null;
   };
@@ -102,7 +103,7 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
   const handleSave = () => {
     const error = validate();
     if (error) {
-      Alert.alert('Validation Error', error);
+      Alert.alert(t('recurringEvent.validationError'), error);
       return;
     }
 
@@ -136,40 +137,40 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} style={styles.headerButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {event ? 'Edit Recurring Event' : 'New Recurring Event'}
+            {event ? t('recurringEvent.editTitle') : t('recurringEvent.newTitle')}
           </Text>
           <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={styles.saveText}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔄 Event Details</Text>
+            <Text style={styles.sectionTitle}>{t('recurringEvent.eventDetails')}</Text>
             
             <SettingsInput
-              label="Event Name"
+              label={t('recurringEvent.eventName')}
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Lunch Menu"
+              placeholder={t('recurringEvent.eventNamePlaceholder')}
             />
 
             <View style={styles.spacer} />
 
             <SettingsInput
-              label="URL to Display"
+              label={t('recurringEvent.urlToDisplay')}
               value={url}
               onChangeText={setUrl}
-              placeholder="https://example.com/menu"
+              placeholder={t('recurringEvent.urlPlaceholder')}
               keyboardType="url"
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📅 Schedule</Text>
+            <Text style={styles.sectionTitle}>{t('recurringEvent.schedule')}</Text>
             
             <DaySelector
               selectedDays={days}
@@ -178,13 +179,13 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
 
             <View style={styles.timeRow}>
               <TimeInput
-                label="Start Time"
+                label={t('recurringEvent.startTime')}
                 value={startTime}
                 onChange={setStartTime}
               />
               <View style={styles.timeSpacer} />
               <TimeInput
-                label="End Time"
+                label={t('recurringEvent.endTime')}
                 value={endTime}
                 onChange={setEndTime}
               />
@@ -192,9 +193,9 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚙️ Options</Text>
+            <Text style={styles.sectionTitle}>{t('recurringEvent.options')}</Text>
             
-            <Text style={styles.label}>Priority (for overlapping events)</Text>
+            <Text style={styles.label}>{t('recurringEvent.priorityLabel')}</Text>
             <View style={styles.priorityRow}>
               {PRIORITY_LEVELS.map(level => (
                 <TouchableOpacity
@@ -215,7 +216,7 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
               ))}
             </View>
             <Text style={styles.priorityHint}>
-              1 = Highest priority, 5 = Lowest
+              {t('recurringEvent.priorityHint')}
             </Text>
 
             <View style={styles.spacer} />
@@ -224,7 +225,7 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
               style={styles.enabledRow}
               onPress={() => setEnabled(!enabled)}
             >
-              <Text style={styles.label}>Event Enabled</Text>
+              <Text style={styles.label}>{t('recurringEvent.eventEnabled')}</Text>
               <Text style={styles.enabledIcon}>{enabled ? '✅' : '⬜'}</Text>
             </TouchableOpacity>
           </View>

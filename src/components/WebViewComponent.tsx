@@ -25,6 +25,8 @@ import {
 } from '../utils/filarePanelUrl';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { APP_VERSION } from '../constants/appVersion';
+import { t } from '../i18n';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -241,7 +243,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
     // Extract hostname from URL using regex (avoid URL constructor type issues in RN)
     const hostMatch = blockedUrl.match(/^https?:\/\/([^/]+)/);
     const hostname = hostMatch ? hostMatch[1] : blockedUrl;
-    setBlockedUrlMessage(`🚫 ${hostname}`);
+    setBlockedUrlMessage(t('kiosk.urlBlocked', { hostname }));
     if (blockedUrlTimerRef.current) clearTimeout(blockedUrlTimerRef.current);
     blockedUrlTimerRef.current = setTimeout(() => setBlockedUrlMessage(null), 2000);
   }, [urlFilterShowFeedback]);
@@ -830,25 +832,14 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
             </View>
 
             {/* Title */}
-            <Text style={styles.welcomeTitle}>FreeKiosk</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Professional Kiosk Application
-            </Text>
+            <Text style={styles.welcomeTitle}>{t('kiosk.appName')}</Text>
+            <Text style={styles.welcomeSubtitle}>{t('kiosk.welcomeSubtitle')}</Text>
 
             {/* Features List */}
             <View style={styles.featuresList}>
-              <FeatureItem
-                icon="🔒"
-                text="Secure kiosk mode"
-              />
-              <FeatureItem
-                icon="⚡"
-                text="Optimal performance"
-              />
-              <FeatureItem
-                icon="🎯"
-                text="100% free & open source"
-              />
+              <FeatureItem icon="🔒" text={t('kiosk.featureSecure')} />
+              <FeatureItem icon="⚡" text={t('kiosk.featurePerformance')} />
+              <FeatureItem icon="🎯" text={t('kiosk.featureOpenSource')} />
             </View>
 
             {/* Action Button */}
@@ -857,9 +848,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
               onPress={handleNavigateToSettings}
               activeOpacity={0.8}
             >
-              <Text style={styles.setupButtonText}>
-                🚀 Start Configuration
-              </Text>
+              <Text style={styles.setupButtonText}>{t('kiosk.startConfiguration')}</Text>
             </TouchableOpacity>
 
             {/* GitHub Support Button */}
@@ -868,21 +857,17 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
               onPress={handleOpenGitHub}
               activeOpacity={0.7}
             >
-              <Text style={styles.githubButtonText}>
-                ⭐ Support us on GitHub
-              </Text>
+              <Text style={styles.githubButtonText}>{t('kiosk.supportGitHub')}</Text>
             </TouchableOpacity>
 
             {/* Hint */}
             <View style={styles.hintContainer}>
-              <Text style={styles.hintText}>
-                💡 Tip: Tap 5× anywhere on the screen to access settings
-              </Text>
+              <Text style={styles.hintText}>{t('kiosk.tapHint')}</Text>
             </View>
 
             {/* Footer */}
             <Text style={styles.footerText}>
-              Version 1.2.22 • by Rushb
+              {t('kiosk.footerVersion', { version: APP_VERSION })}
             </Text>
           </Animated.View>
         </ScrollView>
@@ -1146,7 +1131,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
       {loading && !error && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>{t('kiosk.loading')}</Text>
           {/* Fallback settings button inside loading overlay */}
           <TouchableOpacity
             style={styles.fallbackSettingsButton}
@@ -1165,20 +1150,16 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>Loading Error</Text>
-          <Text style={styles.errorSubtext}>URL: {url}</Text>
+          <Text style={styles.errorText}>{t('kiosk.loadingError')}</Text>
+          <Text style={styles.errorSubtext}>{t('kiosk.urlLabel', { url })}</Text>
           {autoReload && (
-            <Text style={styles.helpText}>
-              Automatic reload in 5 seconds...
-            </Text>
+            <Text style={styles.helpText}>{t('kiosk.autoReloadIn')}</Text>
           )}
           <TouchableOpacity style={styles.reloadButton} onPress={handleReload}>
-            <Text style={styles.reloadText}>🔄 Reload Now</Text>
+            <Text style={styles.reloadText}>{t('kiosk.reloadNow')}</Text>
           </TouchableOpacity>
           {/* Fallback settings button inside error overlay */}
-          <Text style={styles.fallbackSettingsHint}>
-            Tap ⚙️ button 5× to return to settings
-          </Text>
+          <Text style={styles.fallbackSettingsHint}>{t('kiosk.fallbackSettingsHint')}</Text>
           <TouchableOpacity
             style={styles.fallbackSettingsButton}
             activeOpacity={0.7}

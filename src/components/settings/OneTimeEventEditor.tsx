@@ -20,6 +20,7 @@ import { ScheduledEvent, generateEventId, isValidTime, isValidDate, PRIORITY_LEV
 import { SettingsInput, SettingsSwitch } from './index';
 import DateInput from './DateInput';
 import TimeInput from './TimeInput';
+import { t } from '../../i18n';
 
 interface OneTimeEventEditorProps {
   visible: boolean;
@@ -91,29 +92,29 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
 
   const validate = (): string | null => {
     if (!name.trim()) {
-      return 'Please enter an event name';
+      return t('oneTimeEvent.enterName');
     }
     if (!url.trim()) {
-      return 'Please enter a URL';
+      return t('oneTimeEvent.enterUrl');
     }
     if (!isValidDate(startDate)) {
-      return 'Please enter a valid start date (YYYY-MM-DD)';
+      return t('oneTimeEvent.invalidStartDate');
     }
     if (!isValidDate(endDate)) {
-      return 'Please enter a valid end date (YYYY-MM-DD)';
+      return t('oneTimeEvent.invalidEndDate');
     }
     if (endDate < startDate) {
-      return 'End date cannot be before start date';
+      return t('oneTimeEvent.endBeforeStart');
     }
     if (!allDay) {
       if (!isValidTime(startTime)) {
-        return 'Please enter a valid start time (HH:MM)';
+        return t('oneTimeEvent.invalidStartTime');
       }
       if (!isValidTime(endTime)) {
-        return 'Please enter a valid end time (HH:MM)';
+        return t('oneTimeEvent.invalidEndTime');
       }
       if (startDate === endDate && startTime >= endTime) {
-        return 'End time must be after start time for single-day events';
+        return t('oneTimeEvent.endAfterStart');
       }
     }
     return null;
@@ -122,7 +123,7 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
   const handleSave = () => {
     const error = validate();
     if (error) {
-      Alert.alert('Validation Error', error);
+      Alert.alert(t('oneTimeEvent.validationError'), error);
       return;
     }
 
@@ -165,50 +166,50 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} style={styles.headerButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {event ? 'Edit One-Time Event' : 'New One-Time Event'}
+            {event ? t('oneTimeEvent.editTitle') : t('oneTimeEvent.newTitle')}
           </Text>
           <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={styles.saveText}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📆 Event Details</Text>
+            <Text style={styles.sectionTitle}>{t('oneTimeEvent.eventDetails')}</Text>
             
             <SettingsInput
-              label="Event Name"
+              label={t('oneTimeEvent.eventName')}
               value={name}
               onChangeText={setName}
-              placeholder="e.g., Christmas Sale, Summer Promo"
+              placeholder={t('oneTimeEvent.eventNamePlaceholder')}
             />
 
             <View style={styles.spacer} />
 
             <SettingsInput
-              label="URL to Display"
+              label={t('oneTimeEvent.urlToDisplay')}
               value={url}
               onChangeText={setUrl}
-              placeholder="https://example.com/promo"
+              placeholder={t('oneTimeEvent.urlPlaceholder')}
               keyboardType="url"
             />
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📅 Date Range</Text>
+            <Text style={styles.sectionTitle}>{t('oneTimeEvent.dateRange')}</Text>
             
             <View style={styles.dateRow}>
               <DateInput
-                label="Start Date"
+                label={t('oneTimeEvent.startDate')}
                 value={startDate}
                 onChange={setStartDate}
               />
               <View style={styles.dateSpacer} />
               <DateInput
-                label="End Date"
+                label={t('oneTimeEvent.endDate')}
                 value={endDate}
                 onChange={setEndDate}
                 minDate={startDate}
@@ -218,8 +219,8 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
             <View style={styles.spacer} />
 
             <SettingsSwitch
-              label="All Day"
-              hint="Event active for the entire day(s)"
+              label={t('oneTimeEvent.allDay')}
+              hint={t('oneTimeEvent.allDayHint')}
               value={allDay}
               onValueChange={setAllDay}
             />
@@ -227,13 +228,13 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
             {!allDay && (
               <View style={styles.timeRow}>
                 <TimeInput
-                  label="Start Time"
+                  label={t('oneTimeEvent.startTime')}
                   value={startTime}
                   onChange={setStartTime}
                 />
                 <View style={styles.timeSpacer} />
                 <TimeInput
-                  label="End Time"
+                  label={t('oneTimeEvent.endTime')}
                   value={endTime}
                   onChange={setEndTime}
                 />
@@ -242,9 +243,9 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚙️ Options</Text>
+            <Text style={styles.sectionTitle}>{t('oneTimeEvent.options')}</Text>
             
-            <Text style={styles.label}>Priority (for overlapping events)</Text>
+            <Text style={styles.label}>{t('oneTimeEvent.priorityLabel')}</Text>
             <View style={styles.priorityRow}>
               {PRIORITY_LEVELS.map(level => (
                 <TouchableOpacity
@@ -265,7 +266,7 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
               ))}
             </View>
             <Text style={styles.priorityHint}>
-              1 = Highest priority, 5 = Lowest • One-time events take priority over recurring
+              {t('oneTimeEvent.priorityHint')}
             </Text>
 
             <View style={styles.spacer} />
@@ -274,7 +275,7 @@ const OneTimeEventEditor: React.FC<OneTimeEventEditorProps> = ({
               style={styles.enabledRow}
               onPress={() => setEnabled(!enabled)}
             >
-              <Text style={styles.label}>Event Enabled</Text>
+              <Text style={styles.label}>{t('oneTimeEvent.eventEnabled')}</Text>
               <Text style={styles.enabledIcon}>{enabled ? '✅' : '⬜'}</Text>
             </TouchableOpacity>
           </View>

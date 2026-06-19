@@ -14,6 +14,35 @@
 const AUTH_EXPIRY_MS = 60_000; // 60 seconds — generous window for Settings to mount
 
 let _pinVerifiedAt: number | null = null;
+let _pendingBrowsedUrl: string | null = null;
+let _pendingBrowsedUrlAt: number | null = null;
+
+/** Store WebView URL before navigating to PIN/Settings (TTL aligned with auth gate). */
+export function setPendingBrowsedUrl(url: string): void {
+  if (!url || url === 'about:blank') {
+    return;
+  }
+  _pendingBrowsedUrl = url;
+  _pendingBrowsedUrlAt = Date.now();
+}
+
+/** Read pending browsed URL without clearing (Settings may mount after PIN). */
+export function getPendingBrowsedUrl(): string | null {
+  if (_pendingBrowsedUrl === null || _pendingBrowsedUrlAt === null) {
+    return null;
+  }
+  if (Date.now() - _pendingBrowsedUrlAt >= AUTH_EXPIRY_MS) {
+    _pendingBrowsedUrl = null;
+    _pendingBrowsedUrlAt = null;
+    return null;
+  }
+  return _pendingBrowsedUrl;
+}
+
+export function clearPendingBrowsedUrl(): void {
+  _pendingBrowsedUrl = null;
+  _pendingBrowsedUrlAt = null;
+}
 
 /** Call after PIN is successfully verified (PinScreen → Settings). */
 export function grantSettingsAccess(): void {
@@ -23,6 +52,7 @@ export function grantSettingsAccess(): void {
 /** Call when leaving Settings (save, reset, back-to-kiosk, etc.). */
 export function revokeSettingsAccess(): void {
   _pinVerifiedAt = null;
+  clearPendingBrowsedUrl();
 }
 
 /**

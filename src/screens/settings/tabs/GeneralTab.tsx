@@ -26,6 +26,8 @@ import { generateMediaItemId, detectMediaType, isLocalMedia, getMediaDisplayName
 import FilePickerModule from '../../../utils/FilePickerModule';
 import type { PickedFile } from '../../../utils/FilePickerModule';
 import { isFilarePanelUrl } from '../../../utils/filarePanelUrl';
+import { isBrowsableKioskUrl, normalizeFilareKioskUrl } from '../../../utils/filareKioskUrl';
+import { t } from '../../../i18n';
 
 interface GeneralTabProps {
   // Display mode
@@ -35,6 +37,7 @@ interface GeneralTabProps {
   // WebView settings
   url: string;
   onUrlChange: (url: string) => void;
+  browsedUrl?: string | null;
   
   // External app settings
   externalAppPackage: string;
@@ -175,6 +178,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   onDisplayModeChange,
   url,
   onUrlChange,
+  browsedUrl,
   externalAppPackage,
   onExternalAppPackageChange,
   onPickApp,
@@ -276,33 +280,40 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
   onBackToKiosk,
 }) => {
   const filarePanelUrl = isFilarePanelUrl(url);
+  const applyBrowsedUrlCandidate =
+    browsedUrl && isBrowsableKioskUrl(browsedUrl)
+      ? normalizeFilareKioskUrl(browsedUrl) ?? browsedUrl
+      : null;
+  const canApplyBrowsedUrl =
+    applyBrowsedUrlCandidate !== null &&
+    applyBrowsedUrlCandidate.replace(/\/+$/, '') !== url.replace(/\/+$/, '');
 
   return (
     <View>
       {/* Display Mode Selection */}
-      <SettingsSection title="Display Mode" icon="cellphone">
+      <SettingsSection title={t('general.displayMode')} icon="cellphone">
         <SettingsModeSelector
           options={[
-            { value: 'webview', label: 'Website', icon: 'web' },
-            { value: 'media_player', label: 'Media', icon: 'play-circle-outline' },
-            { value: 'external_app', label: 'App', icon: 'android' },
+            { value: 'webview', label: t('general.modeWebsite'), icon: 'web' },
+            { value: 'media_player', label: t('general.modeMedia'), icon: 'play-circle-outline' },
+            { value: 'external_app', label: t('general.modeApp'), icon: 'android' },
           ]}
           value={displayMode}
           onValueChange={(value) => onDisplayModeChange(value as 'webview' | 'external_app' | 'media_player')}
-          hint="Website, media player (video/images), or Android application"
+          hint={t('general.displayModeHint')}
         />
         
         {/* Device Owner warning for External App */}
         {displayMode === 'external_app' && !isDeviceOwner && (
-          <SettingsInfoBox variant="error" title="🔒 Device Owner Recommended">
+          <SettingsInfoBox variant="error" title={t('general.deviceOwnerRecommended')}>
             <Text style={styles.infoText}>
-              Without Device Owner:{`
+              {t('general.deviceOwnerWarningWithout')}{`
 `}
-              • Navigation buttons remain accessible{`
+              {t('general.deviceOwnerWarningNav')}{`
 `}
-              • User can exit the app freely{`
+              {t('general.deviceOwnerWarningExit')}{`
 `}
-              • Lock mode may not work properly
+              {t('general.deviceOwnerWarningLock')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -310,11 +321,11 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* How to Use */}
       <SettingsSection variant="info">
-        <Text style={styles.infoTitle}>ℹ️ How to Use</Text>
+        <Text style={styles.infoTitle}>{t('general.howToUseTitle')}</Text>
         <Text style={styles.infoText}>
-          {displayMode === 'media_player' 
-            ? '• Add video or image URLs to build a playlist\n• Configure playback options (loop, shuffle, etc.)\n• Set a secure PIN code\n• Enable "Lock Mode" for full kiosk mode\n• Tap 5 times to access settings'
-            : `• Configure the URL of the web page to display\n• Set a secure PIN code\n• Enable "Lock Mode" for full kiosk mode\n• Tap 5 times on the secret button to access settings (default: bottom-right)\n• Enter PIN code to unlock`}
+          {displayMode === 'media_player'
+            ? t('general.howToUseMedia')
+            : t('general.howToUseWebview')}
         </Text>
       </SettingsSection>
       
@@ -322,12 +333,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       {displayMode === 'media_player' && (
         <>
           {/* Media Items / Playlist */}
-          <SettingsSection title="Media Playlist" icon="play-circle-outline">
+          <SettingsSection title={t('general.mediaPlaylist')} icon="play-circle-outline">
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
-                {'🎬 Add media from your device or via URL.\n'}
-                {'Supported: MP4, WebM, OGG (video) • JPG, PNG, GIF, WebP, SVG (image)\n\n'}
-                {'📱 Local files are copied to app storage for reliable playback.'}
+                {t('general.mediaPlaylistInfo')}
               </Text>
             </SettingsInfoBox>
             
@@ -339,7 +348,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                 disabled={pickingMedia}
               >
                 <Text style={styles.pickButtonText}>
-                  {pickingMedia ? '⏳ Picking...' : '📁 Pick from Device'}
+                  {pickingMedia ? t('general.pickingMedia') : t('general.pickFromDevice')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -367,12 +376,12 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                     { backgroundColor: item.type === 'video' ? Colors.info : Colors.secondary }
                   ]}>
                     <Text style={styles.mediaItemTypeText}>
-                      {item.type === 'video' ? '🎥 Video' : '🖼️ Image'}
+                      {item.type === 'video' ? t('general.mediaVideo') : t('general.mediaImage')}
                     </Text>
                   </View>
                   {item.isLocal && (
                     <View style={styles.localBadge}>
-                      <Text style={styles.localBadgeText}>📱 Local</Text>
+                      <Text style={styles.localBadgeText}>{t('general.mediaLocal')}</Text>
                     </View>
                   )}
                   <TouchableOpacity
@@ -402,7 +411,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                   </View>
                 ) : (
                   <SettingsInput
-                    label="URL"
+                    label={t('general.urlLabel')}
                     value={item.url}
                     onChangeText={(text) => {
                       const updated = mediaPlayerItems.map(i => 
@@ -410,14 +419,14 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                       );
                       onMediaPlayerItemsChange(updated);
                     }}
-                    placeholder="https://example.com/video.mp4"
+                    placeholder={t('general.mediaUrlPlaceholder')}
                     keyboardType="url"
                   />
                 )}
                 
                 {item.type === 'image' && (
                   <SettingsInput
-                    label="Display Duration (seconds)"
+                    label={t('general.displayDurationSeconds')}
                     value={item.duration ? String(item.duration) : ''}
                     onChangeText={(text) => {
                       const dur = parseInt(text, 10);
@@ -428,14 +437,14 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                     }}
                     placeholder={mediaPlayerImageDuration || '10'}
                     keyboardType="numeric"
-                    hint="Leave empty to use default duration"
+                    hint={t('general.displayDurationHint')}
                   />
                 )}
               </View>
             ))}
             
             <SettingsButton
-              title="Add URL Entry"
+              title={t('general.addUrlEntry')}
               icon="plus-circle"
               variant="success"
               onPress={() => {
@@ -452,69 +461,69 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             {mediaPlayerItems.length === 0 && (
               <SettingsInfoBox variant="warning">
                 <Text style={styles.infoText}>
-                  ⚠️ Add at least one media item to use the Media Player
+                  {t('general.mediaMinOneWarning')}
                 </Text>
               </SettingsInfoBox>
             )}
           </SettingsSection>
           
           {/* Playback Settings */}
-          <SettingsSection title="Playback" icon="play">
+          <SettingsSection title={t('general.playback')} icon="play">
             <SettingsSwitch
-              label="Auto Play"
+              label={t('general.autoPlay')}
               value={mediaPlayerAutoPlay}
               onValueChange={onMediaPlayerAutoPlayChange}
-              hint="Automatically start playing when the screen loads"
+              hint={t('general.autoPlayHint')}
             />
             
             <SettingsSwitch
-              label="Loop Playlist"
+              label={t('general.loopPlaylist')}
               value={mediaPlayerLoop}
               onValueChange={onMediaPlayerLoopChange}
-              hint="Restart the playlist from the beginning when it ends"
+              hint={t('general.loopPlaylistHint')}
             />
             
             <SettingsSwitch
-              label="Shuffle"
+              label={t('general.shuffle')}
               value={mediaPlayerShuffle}
               onValueChange={onMediaPlayerShuffleChange}
-              hint="Play items in random order"
+              hint={t('general.shuffleHint')}
             />
             
             <SettingsSwitch
-              label="Mute Videos"
+              label={t('general.muteVideos')}
               value={mediaPlayerMute}
               onValueChange={onMediaPlayerMuteChange}
-              hint="Play all videos without audio"
+              hint={t('general.muteVideosHint')}
             />
             
             <View style={styles.rotationSpacer} />
             <SettingsInput
-              label="Default Image Duration (seconds)"
+              label={t('general.defaultImageDuration')}
               value={mediaPlayerImageDuration}
               onChangeText={onMediaPlayerImageDurationChange}
               placeholder="10"
               keyboardType="numeric"
-              hint="How long to display each image (1-3600s). Per-image override available above."
+              hint={t('general.defaultImageDurationHint')}
             />
           </SettingsSection>
           
           {/* Display Settings */}
-          <SettingsSection title="Display Options" icon="monitor">
+          <SettingsSection title={t('general.displayOptions')} icon="monitor">
             <SettingsSwitch
-              label="Show Playback Controls"
+              label={t('general.showPlaybackControls')}
               value={mediaPlayerShowControls}
               onValueChange={onMediaPlayerShowControlsChange}
-              hint="Show play/pause, next/prev controls (tap screen to toggle)"
+              hint={t('general.showPlaybackControlsHint')}
             />
             
             <View style={styles.rotationSpacer} />
             <SettingsRadioGroup
-              label="Content Fit Mode"
+              label={t('general.contentFitMode')}
               options={[
-                { value: 'contain', label: 'Contain (fit within screen)' },
-                { value: 'cover', label: 'Cover (fill screen, may crop)' },
-                { value: 'fill', label: 'Fill (stretch to fit)' },
+                { value: 'contain', label: t('general.fitContain') },
+                { value: 'cover', label: t('general.fitCover') },
+                { value: 'fill', label: t('general.fitFill') },
               ]}
               value={mediaPlayerFitMode}
               onValueChange={(v) => onMediaPlayerFitModeChange(v as MediaFitMode)}
@@ -522,29 +531,29 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             
             <View style={styles.rotationSpacer} />
             <SettingsInput
-              label="Background Color"
+              label={t('general.backgroundColor')}
               value={mediaPlayerBgColor}
               onChangeText={onMediaPlayerBgColorChange}
               placeholder="#000000"
-              hint="Hex color for areas not covered by media (e.g. #000000 for black)"
+              hint={t('general.backgroundColorHint')}
             />
             
             <View style={styles.rotationSpacer} />
             <SettingsSwitch
-              label="Crossfade Transition"
+              label={t('general.crossfadeTransition')}
               value={mediaPlayerTransition}
               onValueChange={onMediaPlayerTransitionChange}
-              hint="Smooth fade transition between media items"
+              hint={t('general.crossfadeTransitionHint')}
             />
             
             {mediaPlayerTransition && (
               <SettingsInput
-                label="Transition Duration (ms)"
+                label={t('general.transitionDurationMs')}
                 value={mediaPlayerTransitionDuration}
                 onChangeText={onMediaPlayerTransitionDurationChange}
                 placeholder="500"
                 keyboardType="numeric"
-                hint="Duration of the crossfade effect (0-3000ms)"
+                hint={t('general.transitionDurationHint')}
               />
             )}
           </SettingsSection>
@@ -553,18 +562,18 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* URL Input (WebView mode) */}
       {displayMode === 'webview' && (
-        <SettingsSection title="URL to Display" icon="link-variant">
+        <SettingsSection title={t('general.urlSection')} icon="link-variant">
           <SettingsSwitch
-            label="Use Dashboard Mode"
+            label={t('general.useDashboardMode')}
             value={dashboardModeEnabled}
             onValueChange={onDashboardModeEnabledChange}
-            hint="Replace single URL with a multi-URL dashboard"
+            hint={t('general.useDashboardModeHint')}
           />
 
           {dashboardModeEnabled ? (
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
-                Dashboard mode is active. Configure your tiles in the Dashboard tab.
+                {t('general.dashboardActive')}
               </Text>
             </SettingsInfoBox>
           ) : (
@@ -573,17 +582,32 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
                 label=""
                 value={url}
                 onChangeText={onUrlChange}
-                placeholder="https://example.com"
+                placeholder={t('general.urlPlaceholder')}
                 keyboardType="url"
-                hint="Example: https://www.freekiosk.app"
+                hint={t('general.urlHint')}
               />
+
+              {canApplyBrowsedUrl && applyBrowsedUrlCandidate && (
+                <SettingsButton
+                  title={t('general.useCurrentUrl')}
+                  icon="content-copy"
+                  variant="secondary"
+                  onPress={() => onUrlChange(applyBrowsedUrlCandidate)}
+                />
+              )}
+
+              {filarePanelUrl && !filarePanelProfileEnabled && (
+                <SettingsInfoBox variant="info">
+                  <Text style={styles.infoText}>
+                    {t('general.filareUrlHint')}
+                  </Text>
+                </SettingsInfoBox>
+              )}
 
               {url.trim().toLowerCase().startsWith('http://') && (
                 <SettingsInfoBox variant="warning">
                   <Text style={styles.infoText}>
-                    ⚠️ SECURITY: This URL uses HTTP (unencrypted).{`
-`}
-                    Your data can be intercepted. Use HTTPS instead.
+                    ⚠️ {t('general.httpWarning')}
                   </Text>
                 </SettingsInfoBox>
               )}
@@ -594,44 +618,41 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       {/* FILARE panel profile — WebView + FILARE panel/tv URL */}
       {displayMode === 'webview' && filarePanelUrl && !dashboardModeEnabled && (
-        <SettingsSection title="Perfil painel FILARE (economia RAM)" icon="speedometer">
+        <SettingsSection title={t('filare.profileTitle')} icon="speedometer">
           <SettingsInfoBox variant="info">
             <Text style={styles.infoText}>
-              Recomendado para TV box com 1–2 GB de RAM. Desliga recursos extras do kiosk e
-              pode enviar lowMemory=1 ao FILARE para reduzir uso de memória no vídeo.
+              {t('filare.profileInfo')}
             </Text>
           </SettingsInfoBox>
           <SettingsSwitch
-            label="Ativar perfil economia RAM"
+            label={t('filare.profileEnable')}
             value={filarePanelProfileEnabled}
             onValueChange={onFilarePanelProfileEnabledChange}
-            hint="Desliga PDF, rotação, planner, screensaver, motion, inactivity return, status bar e debug overlay"
+            hint={t('filare.profileEnableHint')}
           />
           {filarePanelProfileEnabled && (
             <>
               <SettingsSwitch
-                label="Enviar lowMemory=1 ao FILARE"
+                label={t('filare.lowMemory')}
                 value={filarePanelProfileLowMemoryUrl}
                 onValueChange={onFilarePanelProfileLowMemoryUrlChange}
-                hint="Acrescenta ?lowMemory=1 na URL do painel (player de vídeo leve no servidor)"
+                hint={t('filare.lowMemoryHint')}
               />
               <SettingsSwitch
-                label="Permitir REST API local"
+                label={t('filare.allowRestApi')}
                 value={filarePanelProfileAllowRestApi}
                 onValueChange={onFilarePanelProfileAllowRestApiChange}
-                hint="Mantém /api/reload e demais endpoints locais (Advanced) se já estiverem ligados"
+                hint={t('filare.allowRestApiHint')}
               />
               <SettingsSwitch
-                label="Permitir MQTT"
+                label={t('filare.allowMqtt')}
                 value={filarePanelProfileAllowMqtt}
                 onValueChange={onFilarePanelProfileAllowMqttChange}
-                hint="Mantém cliente MQTT (Advanced) se já estiver ligado"
+                hint={t('filare.allowMqttHint')}
               />
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  Com o perfil ativo ficam desligados: PDF viewer, URL rotation, URL planner,
-                  screensaver, motion detection, inactivity return, status bar do FreeKiosk e
-                  panel debug overlay. Tela sempre ligada e kiosk não são alterados.
+                  {t('filare.profileDisabledInfo')}
                 </Text>
               </SettingsInfoBox>
             </>
@@ -641,29 +662,29 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       {/* HTTP Basic Auth (WebView mode only) */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Website Authentication" icon="lock-outline">
+        <SettingsSection title={t('general.websiteAuth')} icon="lock-outline">
           <SettingsInput
-            label="Username"
+            label={t('general.username')}
             value={basicAuthUsername}
             onChangeText={onBasicAuthUsernameChange}
-            placeholder="Leave empty to disable"
-            hint="Username for HTTP Basic Auth (401 challenges)"
+            placeholder={t('general.usernamePlaceholder')}
+            hint={t('general.usernameHint')}
             autoCapitalize="none"
           />
           {basicAuthUsername.trim().length > 0 && (
             <SettingsInput
-              label="Password"
+              label={t('general.password')}
               value={basicAuthPassword}
               onChangeText={onBasicAuthPasswordChange}
-              placeholder="Password"
+              placeholder={t('general.passwordPlaceholder')}
               secureTextEntry={true}
-              hint="Stored in the device Keychain (not in plain text)"
+              hint={t('general.passwordKeychainHint')}
               autoCapitalize="none"
             />
           )}
           <SettingsInfoBox variant="info">
             <Text style={styles.infoText}>
-              When a website returns a 401 Unauthorized response, FreeKiosk will automatically reply with these credentials. Leave username empty to disable.
+              {t('general.basicAuthInfo')}
             </Text>
           </SettingsInfoBox>
         </SettingsSection>
@@ -671,21 +692,21 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       {/* URL Rotation (WebView mode only) */}
       {displayMode === 'webview' && (
-        <SettingsSection title="URL Rotation" icon="sync">
+        <SettingsSection title={t('general.urlRotation')} icon="sync">
           {dashboardModeEnabled && (
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
-                URL Rotation is disabled in Dashboard mode.
+                {t('general.urlRotationDashboardDisabled')}
               </Text>
             </SettingsInfoBox>
           )}
           {!dashboardModeEnabled && (
             <>
               <SettingsSwitch
-                label="Enable Rotation"
+                label={t('general.enableRotation')}
                 value={urlRotationEnabled}
                 onValueChange={onUrlRotationEnabledChange}
-                hint="Automatically cycle through multiple URLs"
+                hint={t('general.enableRotationHint')}
               />
 
               {urlRotationEnabled && (
@@ -698,18 +719,18 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
                   <View style={styles.rotationSpacer} />
                   <SettingsInput
-                    label="Rotation Interval (seconds)"
+                    label={t('general.rotationIntervalSeconds')}
                     value={urlRotationInterval}
                     onChangeText={onUrlRotationIntervalChange}
                     placeholder="30"
                     keyboardType="numeric"
-                    hint="Time between each URL change (minimum 5 seconds)"
+                    hint={t('general.rotationIntervalHint')}
                   />
 
                   {urlRotationList.length < 2 && (
                     <SettingsInfoBox variant="warning">
                       <Text style={styles.infoText}>
-                        ⚠️ Add at least 2 URLs to enable rotation
+                        {t('general.rotationMinTwoUrls')}
                       </Text>
                     </SettingsInfoBox>
                   )}
@@ -722,21 +743,19 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* URL Planner (WebView mode only) */}
       {displayMode === 'webview' && (
-        <SettingsSection title="URL Planner" icon="calendar-clock">
+        <SettingsSection title={t('general.urlPlanner')} icon="calendar-clock">
           <SettingsSwitch
-            label="Enable Scheduled URLs"
+            label={t('general.enableScheduledUrls')}
             value={urlPlannerEnabled}
             onValueChange={onUrlPlannerEnabledChange}
-            hint="Display specific URLs at scheduled times"
+            hint={t('general.enableScheduledUrlsHint')}
           />
           
           {urlPlannerEnabled && (
             <>
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  📌 Scheduled events take priority over URL Rotation.{`
-`}
-                  One-time events take priority over recurring events.
+                  {t('general.urlPlannerPriorityInfo')}
                 </Text>
               </SettingsInfoBox>
               
@@ -757,33 +776,33 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       {/* External App Sub-Mode Selection */}
       {displayMode === 'external_app' && (
         <>
-          <SettingsSection title="App Mode" icon="apps">
+          <SettingsSection title={t('general.appMode')} icon="apps">
             <SettingsModeSelector
               options={[
-                { value: 'single', label: 'Single App', icon: 'cellphone' },
-                { value: 'multi', label: 'Multi App', icon: 'view-grid', badge: 'BETA', badgeColor: Colors.warning },
+                { value: 'single', label: t('general.singleApp'), icon: 'cellphone' },
+                { value: 'multi', label: t('general.multiApp'), icon: 'view-grid', badge: 'BETA', badgeColor: Colors.warning },
               ]}
               value={externalAppMode}
               onValueChange={(value) => onExternalAppModeChange(value as 'single' | 'multi')}
               hint={externalAppMode === 'single'
-                ? 'Launch a single app in kiosk mode (classic behavior)'
-                : 'Display a home screen grid with multiple apps'}
+                ? t('general.singleAppHint')
+                : t('general.multiAppHint')}
             />
           </SettingsSection>
           
           {/* Single App: classic package name + picker */}
           {externalAppMode === 'single' && (
-            <SettingsSection title="Application" icon="cellphone-link">
+            <SettingsSection title={t('general.application')} icon="cellphone-link">
               <SettingsInput
-                label="Package Name"
+                label={t('general.packageName')}
                 value={externalAppPackage}
                 onChangeText={onExternalAppPackageChange}
                 placeholder="com.example.app"
-                hint="Enter package name or select an app"
+                hint={t('general.packageNameHint')}
               />
               
               <SettingsButton
-                title={loadingApps ? 'Loading...' : 'Choose an Application'}
+                title={loadingApps ? t('general.loadingApps') : t('general.chooseApplication')}
                 icon="format-list-bulleted"
                 variant="success"
                 onPress={onPickApp}
@@ -795,12 +814,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           
           {/* Multi App: managed apps grid */}
           {externalAppMode === 'multi' && (
-            <SettingsSection title="Applications" icon="view-grid">
+            <SettingsSection title={t('general.applications')} icon="view-grid">
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  {'📱 Add apps to display on the home screen grid.\n'}
-                  {'Users can choose which app to launch.\n\n'}
-                  {'Toggle options per app: show on home screen, launch on boot, keep alive, accessibility.'}
+                  {t('general.multiAppInfo')}
                 </Text>
               </SettingsInfoBox>
               <ManagedAppsSection
@@ -813,11 +830,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           
           {/* Managed Apps for Single App mode (optional, for background/accessibility features) */}
           {externalAppMode === 'single' && (
-            <SettingsSection title="Additional Managed Apps" icon="apps">
+            <SettingsSection title={t('general.additionalManagedApps')} icon="apps">
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  {'📋 Optional: add extra apps for background monitoring, boot launch, or accessibility whitelist.\n'}
-                  {'These apps will NOT appear on the home screen in single app mode.'}
+                  {t('general.additionalManagedAppsInfo')}
                 </Text>
               </SettingsInfoBox>
               <ManagedAppsSection
@@ -835,19 +851,19 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             <View style={styles.permissionRow}>
               <View style={styles.permissionTextContainer}>
                 <Text style={[styles.permissionTitle, { color: hasOverlayPermission ? Colors.successDark : Colors.warningDark }]}>
-                  {hasOverlayPermission ? '✓ Return Button Enabled' : '⚠️ Overlay Permission Required'}
+                  {hasOverlayPermission ? t('general.overlayEnabled') : t('general.overlayRequired')}
                 </Text>
                 <Text style={styles.permissionHint}>
                   {hasOverlayPermission
-                    ? "The return button will be functional on the external app."
-                    : "Enable permission to use the return button on the app."}
+                    ? t('general.overlayEnabledHint')
+                    : t('general.overlayRequiredHint')}
                 </Text>
               </View>
             </View>
             
             {!hasOverlayPermission && (
               <SettingsButton
-                title="Enable Permission"
+                title={t('general.enablePermission')}
                 variant="success"
                 onPress={onRequestOverlayPermission}
               />
@@ -861,19 +877,19 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             <View style={styles.permissionRow}>
               <View style={styles.permissionTextContainer}>
                 <Text style={[styles.permissionTitle, { color: hasUsageStatsPermission ? Colors.successDark : Colors.warningDark }]}>
-                  {hasUsageStatsPermission ? '✓ Usage Access Granted' : '⚠️ Usage Access Required'}
+                  {hasUsageStatsPermission ? t('general.usageAccessGranted') : t('general.usageAccessRequired')}
                 </Text>
                 <Text style={styles.permissionHint}>
                   {hasUsageStatsPermission
-                    ? "Auto-relaunch monitoring is active. FreeKiosk can detect when the external app closes."
-                    : "Required for auto-relaunch. Without this, FreeKiosk cannot detect when the external app closes or crashes."}
+                    ? t('general.usageAccessGrantedHint')
+                    : t('general.usageAccessRequiredHint')}
                 </Text>
               </View>
             </View>
             
             {!hasUsageStatsPermission && (
               <SettingsButton
-                title="Grant Usage Access"
+                title={t('general.grantUsageAccess')}
                 variant="warning"
                 onPress={onRequestUsageStatsPermission}
               />
@@ -883,10 +899,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       )}
       
       {/* Password Configuration */}
-      <SettingsSection title="Password" icon="pin">
+      <SettingsSection title={t('general.passwordSection')} icon="pin">
         <SettingsSwitch
-          label="Advanced Password Mode"
-          hint="Enable alphanumeric passwords with special characters. Disable for numeric PIN only (4-6 digits)."
+          label={t('general.advancedPasswordMode')}
+          hint={t('general.advancedPasswordModeHint')}
           value={pinMode === 'alphanumeric'}
           onValueChange={(enabled) => onPinModeChange(enabled ? 'alphanumeric' : 'numeric')}
         />
@@ -900,79 +916,77 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           secureTextEntry
           maxLength={pinMode === 'alphanumeric' ? undefined : 6}
           autoCapitalize={pinMode === 'alphanumeric' ? 'none' : undefined}
-          error={pinModeChanged && !pin ? '⚠️ New password required after mode change' : undefined}
+          error={pinModeChanged && !pin ? t('general.pinRequiredAfterModeChange') : undefined}
           hint={pinModeChanged
-            ? '⚠️ Mode changed - You MUST enter a new password'
+            ? t('general.pinModeChangedHint')
             : isPinConfigured
-              ? '✓ Password configured - Leave empty to keep current password'
+              ? t('general.pinConfiguredHint')
               : pinMode === 'alphanumeric'
-                ? 'Minimum 4 characters. Can include letters, numbers, and special characters.'
-                : 'Numeric PIN: 4-6 digits (default: 1234)'}
+                ? t('general.pinAlphanumericHint')
+                : t('general.pinNumericHint')}
         />
         
         <View style={styles.pinAttemptsContainer}>
           <SettingsInput
-            label="🔒 Max Attempts Before Lockout (15min)"
+            label={t('general.maxAttemptsLockout')}
             value={pinMaxAttemptsText}
             onChangeText={onPinMaxAttemptsChange}
             onBlur={onPinMaxAttemptsBlur}
             keyboardType="numeric"
             maxLength={3}
             placeholder="5"
-            hint="Number of incorrect password attempts allowed (1-100)"
+            hint={t('general.maxAttemptsHint')}
           />
         </View>
       </SettingsSection>
       
       {/* Inactivity Return to Home - WebView only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Inactivity Return" icon="timer-sand">
+        <SettingsSection title={t('general.inactivityReturn')} icon="timer-sand">
           <SettingsSwitch
-            label="Return to Start Page on Inactivity"
+            label={t('general.inactivityReturnEnable')}
             value={inactivityReturnEnabled}
             onValueChange={onInactivityReturnEnabledChange}
-            hint="Automatically navigate back to the start URL when the screen hasn't been touched for a set duration"
+            hint={t('general.inactivityReturnHint')}
           />
           
           {inactivityReturnEnabled && (
             <>
               <View style={styles.rotationSpacer} />
               <SettingsInput
-                label="Inactivity Timeout (seconds)"
+                label={t('general.inactivityTimeoutSeconds')}
                 value={inactivityReturnDelay}
                 onChangeText={onInactivityReturnDelayChange}
                 placeholder="60"
                 keyboardType="numeric"
-                hint="Time in seconds before returning to start page (5-3600)"
+                hint={t('general.inactivityTimeoutHint')}
               />
               
               <View style={styles.rotationSpacer} />
               <SettingsSwitch
-                label="Reset Timer on Page Load"
+                label={t('general.resetTimerOnPageLoad')}
                 value={inactivityReturnResetOnNav}
                 onValueChange={onInactivityReturnResetOnNavChange}
-                hint="Restart the inactivity timer when a new page loads within the WebView"
+                hint={t('general.resetTimerOnPageLoadHint')}
               />
               
               <SettingsSwitch
-                label="Clear Cache on Return"
+                label={t('general.clearCacheOnReturn')}
                 value={inactivityReturnClearCache}
                 onValueChange={onInactivityReturnClearCacheChange}
-                hint="Clear the WebView cache when returning to the start page (full reload)"
+                hint={t('general.clearCacheOnReturnHint')}
               />
               
               <SettingsSwitch
-                label="Scroll to Top on Start Page"
+                label={t('general.scrollToTopOnStart')}
                 value={inactivityReturnScrollTop}
                 onValueChange={onInactivityReturnScrollTopChange}
-                hint="Smoothly scroll back to the top of the page when already on the start page"
+                hint={t('general.scrollToTopOnStartHint')}
               />
               
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  ℹ️ The timer resets on every touch interaction.{`\n`}
-                  If already on the start page and scroll-to-top is enabled, the page will scroll up.{`\n`}
-                  Disabled during URL Rotation, URL Planner, and Screensaver.
+                  {t('general.inactivityReturnInfo')}
                 </Text>
               </SettingsInfoBox>
             </>
@@ -982,10 +996,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* Auto Reload - WebView only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Auto Reload" icon="refresh">
+        <SettingsSection title={t('general.autoReloadSection')} icon="refresh">
           <SettingsSwitch
-            label="Reload on Error"
-            hint="Automatically reload the page on network error"
+            label={t('general.reloadOnError')}
+            hint={t('general.reloadOnErrorHint')}
             value={autoReload}
             onValueChange={onAutoReloadChange}
           />
@@ -994,10 +1008,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* PDF Viewer - WebView only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="PDF Viewer" icon="file-pdf-box">
+        <SettingsSection title={t('general.pdfViewer')} icon="file-pdf-box">
           <SettingsSwitch
-            label="Inline PDF Viewer"
-            hint="Display PDF files directly in the browser instead of downloading them"
+            label={t('general.inlinePdfViewer')}
+            hint={t('general.inlinePdfViewerHint')}
             value={pdfViewerEnabled}
             onValueChange={onPdfViewerEnabledChange}
           />
@@ -1005,8 +1019,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           {pdfViewerEnabled && (
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
-                {'📄 PDF links will open in a built-in viewer with page navigation and zoom controls.\n\n'}
-                {'⚠️ Enabling this feature allows file access in the WebView for the local PDF renderer. Only enable if your kiosk website links to PDF files.'}
+                {t('general.pdfViewerInfo')}
               </Text>
             </SettingsInfoBox>
           )}
@@ -1015,10 +1028,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* Printing - WebView only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Printing" icon="printer">
+        <SettingsSection title={t('general.printing')} icon="printer">
           <SettingsSwitch
-            label="Allow Printing"
-            hint="Enable window.print() support for web pages (label printers, receipts, etc.)"
+            label={t('general.allowPrinting')}
+            hint={t('general.allowPrintingHint')}
             value={printEnabled}
             onValueChange={onPrintEnabledChange}
           />
@@ -1027,13 +1040,13 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
             <>
               <View style={styles.rotationSpacer} />
               <SettingsRadioGroup
-                label="Default Paper Size"
+                label={t('general.defaultPaperSize')}
                 options={[
-                  { value: 'A4',     label: 'A4 (210 × 297 mm)' },
-                  { value: 'A5',     label: 'A5 (148 × 210 mm)' },
-                  { value: 'A3',     label: 'A3 (297 × 420 mm)' },
-                  { value: 'LETTER', label: 'Letter (8.5 × 11 in)' },
-                  { value: 'LEGAL',  label: 'Legal (8.5 × 14 in)' },
+                  { value: 'A4',     label: t('general.paperA4') },
+                  { value: 'A5',     label: t('general.paperA5') },
+                  { value: 'A3',     label: t('general.paperA3') },
+                  { value: 'LETTER', label: t('general.paperLetter') },
+                  { value: 'LEGAL',  label: t('general.paperLegal') },
                 ]}
                 value={printPaperSize}
                 onValueChange={onPrintPaperSizeChange}
@@ -1044,9 +1057,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
           {printEnabled && (
             <SettingsInfoBox variant="info">
               <Text style={styles.infoText}>
-                {'🖨️ Web pages can trigger the Android print dialog via window.print().\n\n'}
-                {'In Device Owner (kiosk) mode, the system print spooler is automatically whitelisted to allow the print dialog to appear.\n\n'}
-                {'Supports WiFi, Bluetooth, USB printers, and Save as PDF.'}
+                {t('general.printingInfo')}
               </Text>
             </SettingsInfoBox>
           )}
@@ -1055,10 +1066,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* WebView Back Button - WebView only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Web Navigation Button" icon="arrow-left-circle">
+        <SettingsSection title={t('general.webNavButton')} icon="arrow-left-circle">
           <SettingsSwitch
-            label="Enable Back Button"
-            hint="Show a floating button to navigate back in web history (NOT app navigation)"
+            label={t('general.enableBackButton')}
+            hint={t('general.enableBackButtonHint')}
             value={webViewBackButtonEnabled}
             onValueChange={onWebViewBackButtonEnabledChange}
           />
@@ -1068,33 +1079,31 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
               <View style={styles.rotationSpacer} />
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  ℹ️ This button only navigates within the web page history.{`
-`}
-                  It will NOT exit the kiosk mode or return to settings.
+                  {t('general.webNavButtonInfo')}
                 </Text>
               </SettingsInfoBox>
               
               <View style={styles.rotationSpacer} />
               <SettingsInput
-                label="Position X (%)"
+                label={t('general.positionXPercent')}
                 value={webViewBackButtonXPercent}
                 onChangeText={onWebViewBackButtonXPercentChange}
                 placeholder="2"
                 keyboardType="numeric"
-                hint="Horizontal position: 0% (left) to 100% (right)"
+                hint={t('general.positionXHint')}
               />
               
               <SettingsInput
-                label="Position Y (%)"
+                label={t('general.positionYPercent')}
                 value={webViewBackButtonYPercent}
                 onChangeText={onWebViewBackButtonYPercentChange}
                 placeholder="10"
                 keyboardType="numeric"
-                hint="Vertical position: 0% (top) to 100% (bottom)"
+                hint={t('general.positionYHint')}
               />
               
               <SettingsButton
-                title="Reset to Default Position"
+                title={t('general.resetDefaultPosition')}
                 icon="restore"
                 variant="outline"
                 onPress={onResetWebViewBackButtonPosition}
@@ -1106,11 +1115,10 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
       
       {/* Background Apps - WebView mode only */}
       {displayMode === 'webview' && (
-        <SettingsSection title="Background Apps" icon="apps">
+        <SettingsSection title={t('general.backgroundApps')} icon="apps">
           <SettingsInfoBox variant="info">
             <Text style={styles.infoText}>
-              {'📋 Optional: add apps to launch and keep running in the background while the kiosk WebView is displayed.\n\n'}
-              {'Example: keep a music or audio receiver app alive alongside your web dashboard.'}
+              {t('general.backgroundAppsInfo')}
             </Text>
           </SettingsInfoBox>
           <ManagedAppsSection
@@ -1124,7 +1132,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({
 
       {/* Back to Kiosk Button */}
       <SettingsButton
-        title="Back to Kiosk"
+        title={t('general.backToKiosk')}
         icon="arrow-u-left-top"
         variant="outline"
         onPress={onBackToKiosk}

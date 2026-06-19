@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
+import { t } from '../../i18n';
 
 interface TimeInputProps {
   label: string;
@@ -100,7 +101,7 @@ const TimeInput: React.FC<TimeInputProps> = ({
       />
       {hasError && (
         <Text style={styles.errorText}>
-          {error || 'Invalid time format (use HH:MM)'}
+          {error || t('form.invalidTime')}
         </Text>
       )}
     </View>

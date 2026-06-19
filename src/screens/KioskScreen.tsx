@@ -27,7 +27,11 @@ import { ScreenScheduleRule, getNextWakeTime, getActiveSleepRule, getNextSleepTi
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import Icon from '../components/Icon';
-import { revokeSettingsAccess } from '../utils/authState';
+import { revokeSettingsAccess, setPendingBrowsedUrl } from '../utils/authState';
+import {
+  normalizeFilareKioskUrl,
+  shouldAutoSaveFilareUrl,
+} from '../utils/filareKioskUrl';
 import {
   appendFilareLowMemoryParam,
   isFilarePanelProfileActive,
@@ -36,6 +40,7 @@ import {
 } from '../utils/filarePanelProfile';
 import { httpServer } from '../utils/HttpServerModule';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { t } from '../i18n';
 
 const { HttpServerModule } = NativeModules;
 
@@ -202,6 +207,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   const [inactivityReturnScrollTop, setInactivityReturnScrollTop] = useState<boolean>(true);
   const inactivityReturnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentWebViewUrlRef = useRef<string>(''); // Track current WebView URL for return logic
+  const lastSavedFilareUrlRef = useRef<string | null>(null);
 
   // Track focus transitions (true→false) to avoid false cleanup triggers
   const prevIsFocusedRef = useRef<boolean>(true);
@@ -331,6 +337,37 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
   useEffect(() => {
     effectiveRuntimeRef.current = effectiveRuntime;
   }, [effectiveRuntime]);
+
+  const stageBrowsedUrlForSettings = useCallback(() => {
+    setPendingBrowsedUrl(currentWebViewUrlRef.current || url);
+  }, [url]);
+
+  const persistFilareKioskUrlFromNavigation = useCallback(
+    (navUrl: string) => {
+      const canonical = normalizeFilareKioskUrl(navUrl);
+      if (!canonical || !shouldAutoSaveFilareUrl(canonical, lastSavedFilareUrlRef.current)) {
+        return;
+      }
+
+      lastSavedFilareUrlRef.current = canonical;
+      setBaseUrl(canonical);
+
+      const pathnameOf = (value: string): string => {
+        try {
+          return new URL(value).pathname;
+        } catch {
+          return value;
+        }
+      };
+
+      if (pathnameOf(url) !== pathnameOf(canonical)) {
+        setUrl(canonical);
+      }
+
+      void StorageService.saveUrl(canonical);
+    },
+    [url],
+  );
 
   const syncFilareProfileNetworkServices = useCallback(
     async (effectiveRestApi: boolean, effectiveMqtt: boolean) => {
@@ -1470,7 +1507,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
         setTimeout(() => {
           // Stop overlay service to prevent foreground monitor from relaunching
           OverlayServiceModule.stopOverlayService().catch(() => {});
-          
+
+          stageBrowsedUrlForSettings();
           // The native flag is already set by OverlayService.returnToFreeKiosk()
           navigation.navigate('Pin');
         }, 0);
@@ -1683,7 +1721,11 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       }
 
       // Store base URL for when planner/rotation is not active
-      if (savedUrl) setBaseUrl(savedUrl);
+      if (savedUrl) {
+        setBaseUrl(savedUrl);
+        const canonical = normalizeFilareKioskUrl(savedUrl);
+        lastSavedFilareUrlRef.current = canonical ?? savedUrl;
+      }
       
       // Load WebView Back Button settings
       const savedWebViewBackButtonEnabled = bool(K.WEBVIEW_BACK_BUTTON_ENABLED, false);
@@ -2340,7 +2382,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
           console.log('[KioskScreen] Exiting scheduled sleep for PIN navigation');
           await exitScheduledSleep();
         }
-        
+
+        stageBrowsedUrlForSettings();
         navigation.navigate('Pin');
         return;
       }
@@ -2513,6 +2556,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       tapCountRef.current = 0;
       clearTimer();
       setIsScreensaverActive(false);
+      stageBrowsedUrlForSettings();
       navigation.navigate('Pin');
     }
 
@@ -2549,6 +2593,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     // Stop OverlayService to prevent foreground monitor from relaunching external app
     // while user is navigating PIN/Settings screens
     OverlayServiceModule.stopOverlayService().catch(() => {});
+    stageBrowsedUrlForSettings();
     navigation.navigate('Pin');
   };
 
@@ -2572,6 +2617,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
       }
       clearTimer();
       setIsScreensaverActive(false);
+      stageBrowsedUrlForSettings();
       navigation.navigate('Pin');
       return;
     }
@@ -2602,7 +2648,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
               dashboardMode={dashboardModeEnabled}
               navCanGoBack={navState.canGoBack}
               navCanGoForward={navState.canGoForward}
-              navTitle={dashboardShowGrid ? 'Dashboard' : navState.title}
+              navTitle={dashboardShowGrid ? t('kiosk.navDashboard') : navState.title}
               showNavBar={!dashboardShowGrid}
               onNavBack={() => webViewRef.current?.goBack()}
               onNavForward={() => webViewRef.current?.goForward()}
@@ -2636,6 +2682,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
               }}
               onPageNavigated={(navUrl: string) => {
                 currentWebViewUrlRef.current = navUrl;
+                persistFilareKioskUrlFromNavigation(navUrl);
                 // In dashboard mode (viewing a tile), always reset the inactivity timer on
                 // any page navigation so self-refreshing pages don't trigger an unexpected
                 // return to the grid. For non-dashboard mode, respect the user setting.

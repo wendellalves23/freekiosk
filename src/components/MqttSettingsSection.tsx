@@ -21,6 +21,7 @@ import { StorageService } from '../utils/storage';
 import { mqttClient } from '../utils/MqttModule';
 import { getSecureMqttPassword, saveSecureMqttPassword } from '../utils/secureStorage';
 import { ApiService } from '../utils/ApiService';
+import { t } from '../i18n';
 
 interface MqttSettingsSectionProps {
   onSettingsChanged?: () => void;
@@ -163,7 +164,7 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
       connectionTimeoutRef.current = setTimeout(() => {
         setIsLoading((current) => {
           if (current) {
-            setConnectionError('Connection timed out after 15 seconds. Check broker URL, port, and network connectivity.');
+            setConnectionError(t('mqtt.connectionTimeout'));
             return false;
           }
           return current;
@@ -171,7 +172,7 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
       }, 15000);
     } catch (error: any) {
       console.error('[MqttSettings] Failed to connect MQTT:', error);
-      setConnectionError(error.message || 'Unknown error');
+      setConnectionError(error.message || t('mqtt.unknownError'));
       setIsLoading(false);
     }
   };
@@ -283,12 +284,12 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
     // Only prompt reconnect if the name actually changed and MQTT is connected
     if (isConnected && deviceName !== deviceNameBeforeEditRef.current) {
       Alert.alert(
-        'Reconnect Required',
-        'The Device Name change will take effect after reconnecting MQTT. Reconnect now?',
+        t('mqtt.reconnectTitle'),
+        t('mqtt.reconnectMessage'),
         [
-          { text: 'Later', style: 'cancel' },
+          { text: t('mqtt.later'), style: 'cancel' },
           {
-            text: 'Reconnect',
+            text: t('mqtt.reconnect'),
             onPress: async () => {
               await handleDisconnect();
               setTimeout(() => handleConnect(), 500);
@@ -312,17 +313,17 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
   };
 
   const getStatusText = () => {
-    if (isLoading) return 'Connecting...';
-    return isConnected ? 'Connected' : 'Disconnected';
+    if (isLoading) return t('mqtt.connecting');
+    return isConnected ? t('mqtt.connected') : t('mqtt.disconnected');
   };
 
   return (
     <SettingsSection
-      title="MQTT"
+      title={t('mqtt.title')}
       icon="lan-connect"
     >
       <SettingsSwitch
-        label="Enable MQTT"
+        label={t('mqtt.enable')}
         value={mqttEnabled}
         onValueChange={handleMqttEnabledChange}
         icon="lan-connect"
@@ -356,7 +357,7 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
                     onPress={handleDisconnect}
                   >
                     <Icon name="lan-disconnect" size={16} color="#FFF" />
-                    <Text style={styles.connectButtonText}>Disconnect</Text>
+                    <Text style={styles.connectButtonText}>{t('mqtt.disconnect')}</Text>
                   </TouchableOpacity>
                 ) : brokerUrl.trim().length > 0 ? (
                   <TouchableOpacity
@@ -364,10 +365,10 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
                     onPress={handleConnect}
                   >
                     <Icon name="lan-connect" size={16} color="#FFF" />
-                    <Text style={styles.connectButtonText}>Connect</Text>
+                    <Text style={styles.connectButtonText}>{t('mqtt.connect')}</Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={styles.connectHint}>Enter broker URL to connect</Text>
+                  <Text style={styles.connectHint}>{t('mqtt.enterBrokerHint')}</Text>
                 )}
               </View>
             )}
@@ -375,121 +376,121 @@ export const MqttSettingsSection: React.FC<MqttSettingsSectionProps> = ({
 
           {/* Broker URL */}
           <SettingsInput
-            label="Broker URL"
+            label={t('mqtt.brokerUrl')}
             value={brokerUrl}
             onChangeText={handleBrokerUrlChange}
-            placeholder="e.g. 192.168.1.100"
+            placeholder={t('mqtt.brokerPlaceholder')}
             keyboardType="url"
             icon="server-network"
-            hint="MQTT broker hostname or IP address (required)"
+            hint={t('mqtt.brokerHint')}
           />
 
           {/* Port */}
           <SettingsInput
-            label="Port"
+            label={t('mqtt.port')}
             value={port}
             onChangeText={handlePortChange}
             placeholder="1883"
             keyboardType="numeric"
             icon="numeric"
-            hint="Port 1-65535 (default: 1883)"
+            hint={t('mqtt.portHint')}
           />
 
           {/* Username */}
           <SettingsInput
-            label="Username (optional)"
+            label={t('mqtt.username')}
             value={username}
             onChangeText={handleUsernameChange}
-            placeholder="Leave empty if not required"
+            placeholder={t('mqtt.usernamePlaceholder')}
             icon="account"
           />
 
           {/* Password */}
           <SettingsInput
-            label="Password (optional)"
+            label={t('mqtt.password')}
             value={password}
             onChangeText={handlePasswordChange}
-            placeholder="Leave empty if not required"
+            placeholder={t('mqtt.passwordPlaceholder')}
             secureTextEntry
             icon="lock"
-            hint={password.length > 0 ? "Password is saved. Leave untouched to keep current password." : undefined}
+            hint={password.length > 0 ? t('mqtt.passwordSavedHint') : undefined}
           />
 
           {/* Client ID */}
           <SettingsInput
-            label="Client ID (optional)"
+            label={t('mqtt.clientId')}
             value={clientId}
             onChangeText={handleClientIdChange}
-            placeholder="Auto-generated if empty"
+            placeholder={t('mqtt.clientIdPlaceholder')}
             icon="identifier"
           />
 
           {/* Device Name */}
           <SettingsInput
-            label="Device Name (optional)"
+            label={t('mqtt.deviceName')}
             value={deviceName}
             onChangeText={handleDeviceNameChange}
             onFocus={handleDeviceNameFocus}
             onBlur={handleDeviceNameBlur}
-            placeholder="e.g. lobby, entrance, kitchen"
+            placeholder={t('mqtt.deviceNamePlaceholder')}
             icon="rename-box"
-            hint="Friendly name used in MQTT topics and HA device name. If empty, uses Android ID."
+            hint={t('mqtt.deviceNameHint')}
           />
 
           {/* Base Topic */}
           <SettingsInput
-            label="Base Topic"
+            label={t('mqtt.baseTopic')}
             value={baseTopic}
             onChangeText={handleBaseTopicChange}
             placeholder="freekiosk"
             icon="tag"
-            hint="Base MQTT topic for this device"
+            hint={t('mqtt.baseTopicHint')}
           />
 
           {/* Discovery Prefix */}
           <SettingsInput
-            label="Discovery Prefix"
+            label={t('mqtt.discoveryPrefix')}
             value={discoveryPrefix}
             onChangeText={handleDiscoveryPrefixChange}
             placeholder="homeassistant"
             icon="home-search"
-            hint="Home Assistant MQTT discovery prefix"
+            hint={t('mqtt.discoveryHint')}
           />
 
           {/* Status Interval */}
           <SettingsInput
-            label="Status Interval (seconds)"
+            label={t('mqtt.statusInterval')}
             value={statusInterval}
             onChangeText={handleStatusIntervalChange}
             placeholder="30"
             keyboardType="numeric"
             icon="timer-outline"
-            hint="How often to publish status (5-3600 seconds)"
+            hint={t('mqtt.statusIntervalHint')}
           />
 
           {/* Allow Remote Control */}
           <SettingsSwitch
-            label="Allow Remote Control"
+            label={t('mqtt.allowRemoteControl')}
             value={allowControl}
             onValueChange={handleAllowControlChange}
             icon="remote"
-            hint="Enable commands via MQTT (brightness, reload, etc.)"
+            hint={t('mqtt.allowRemoteControlHint')}
           />
 
           {/* Always-on Motion Detection */}
           <SettingsSwitch
-            label="Always-on Motion Detection"
+            label={t('mqtt.motionAlwaysOn')}
             value={motionAlwaysOn}
             onValueChange={handleMotionAlwaysOnChange}
             icon="motion-sensor"
-            hint="Run camera-based motion detection continuously (higher battery usage). Without this, motion is only detected during screensaver."
+            hint={t('mqtt.motionAlwaysOnHint')}
           />
 
           {/* Home Assistant Info Box */}
           <View style={styles.hintContainer}>
             <Icon name="home-assistant" size={20} color="#41BDF5" />
             <Text style={styles.hintText}>
-              Devices auto-discover in Home Assistant via MQTT Discovery. Ensure your HA MQTT integration is configured.
+              {t('mqtt.haHint')}
             </Text>
           </View>
         </>

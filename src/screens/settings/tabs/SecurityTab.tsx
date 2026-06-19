@@ -16,6 +16,19 @@ import {
   UrlListEditor,
 } from '../../../components/settings';
 import { Colors, Spacing, Typography } from '../../../theme';
+import { t } from '../../../i18n';
+
+const POSITION_KEYS: Record<string, string> = {
+  'top-left': 'security.positions.topLeft',
+  'top-right': 'security.positions.topRight',
+  'bottom-left': 'security.positions.bottomLeft',
+  'bottom-right': 'security.positions.bottomRight',
+};
+
+function translatePosition(position: string): string {
+  const key = POSITION_KEYS[position];
+  return key ? t(key) : position;
+}
 
 interface SecurityTabProps {
   displayMode: 'webview' | 'external_app' | 'media_player';
@@ -74,6 +87,8 @@ interface SecurityTabProps {
   onUrlFilterListChange: (patterns: string[]) => void;
   urlFilterShowFeedback: boolean;
   onUrlFilterShowFeedbackChange: (value: boolean) => void;
+
+  onExitKioskMode: () => void;
 }
 
 const SecurityTab: React.FC<SecurityTabProps> = ({
@@ -117,14 +132,15 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
   onUrlFilterListChange,
   urlFilterShowFeedback,
   onUrlFilterShowFeedbackChange,
+  onExitKioskMode,
 }) => {
   return (
     <View>
       {/* Lock Mode */}
-      <SettingsSection title="Lock Mode" icon="lock">
+      <SettingsSection title={t('general.lockMode')} icon="lock">
         <SettingsSwitch
-          label="Enable Lock Mode"
-          hint="Prevent users from exiting the kiosk app. Requires PIN code to exit."
+          label={t('general.enableLockMode')}
+          hint={t('general.lockModeHint')}
           value={kioskEnabled}
           onValueChange={onKioskEnabledChange}
         />
@@ -132,7 +148,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {!kioskEnabled && (
           <SettingsInfoBox variant="warning">
             <Text style={styles.infoText}>
-              ⚠️ With Lock Mode disabled, users can exit the app normally
+              ⚠️ {t('security.lockModeDisabled')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -140,7 +156,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {kioskEnabled && (displayMode === 'webview' || displayMode === 'media_player') && isDeviceOwner && (
           <SettingsInfoBox variant="info">
             <Text style={styles.infoText}>
-              ℹ️ Screen pinning enabled: Only 5-tap gesture + PIN code allows exit
+              ℹ️ {t('security.screenPinningEnabled')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -148,7 +164,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {kioskEnabled && (displayMode === 'webview' || displayMode === 'media_player') && !isDeviceOwner && (
           <SettingsInfoBox variant="warning">
             <Text style={styles.infoText}>
-              ⚠️ Without Device Owner, users can exit via Back + Recent Apps gesture. Set FreeKiosk as Device Owner for complete lockdown.
+              ⚠️ {t('security.noDeviceOwnerWarning')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -156,7 +172,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {kioskEnabled && displayMode === 'external_app' && !isDeviceOwner && (
           <SettingsInfoBox variant="error">
             <Text style={styles.infoText}>
-              ⚠️ Device Owner required: Lock Mode will not work in External App mode without Device Owner privileges.
+              ⚠️ {t('security.deviceOwnerRequiredExternal')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -164,7 +180,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {kioskEnabled && displayMode === 'external_app' && isDeviceOwner && (
           <SettingsInfoBox variant="info">
             <Text style={styles.infoText}>
-              ℹ️ Lock Mode enabled: Only 5-tap anywhere on screen + PIN code allows exit from external app
+              ℹ️ {t('security.lockModeExternalEnabled')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -174,22 +190,22 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
           <>
             <View style={styles.divider} />
             <SettingsSwitch
-              label="🔌 Block Power Menu"
-              hint="When enabled, long-pressing the power button has no effect — it can only turn the screen on/off with a short press. When disabled, long-pressing shows the power menu (Restart/Shutdown). ⚠️ Blocking the power menu may cause audio to be muted on some Samsung/OneUI devices."
+              label={t('security.blockPowerMenu')}
+              hint={t('security.blockPowerMenuHint')}
               value={!allowPowerButton}
               onValueChange={(value) => onAllowPowerButtonChange(!value)}
             />
             <View style={styles.divider} />
             <SettingsSwitch
-              label="📡 Allow Notifications (NFC)"
-              hint="Enable notification dispatch to allow NFC tag reading in external apps. ⚠️ Note: Android will show the Home button (non-functional) and make the notification panel accessible when this is enabled."
+              label={t('security.allowNotificationsNfc')}
+              hint={t('security.allowNotificationsNfcHint')}
               value={allowNotifications}
               onValueChange={onAllowNotificationsChange}
             />
             <View style={styles.divider} />
             <SettingsSwitch
-              label="ℹ️ Show System Info Bar"
-              hint="Displays the native Android status bar (time, battery, connectivity) in the locked app. This also fixes audio being muted on some Samsung/OneUI devices in lock mode."
+              label={t('security.showSystemInfoBar')}
+              hint={t('security.showSystemInfoBarHint')}
               value={allowSystemInfo}
               onValueChange={onAllowSystemInfoChange}
             />
@@ -198,22 +214,22 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       </SettingsSection>
       
       {/* Auto Launch */}
-      <SettingsSection title="Auto Launch" icon="rocket-launch">
+      <SettingsSection title={t('security.autoLaunch')} icon="rocket-launch">
         <SettingsSwitch
-          label="Launch on Boot"
-          hint="Automatically launch FreeKiosk when the device starts"
+          label={t('security.launchOnBoot')}
+          hint={t('security.launchOnBootHint')}
           value={autoLaunchEnabled}
           onValueChange={onAutoLaunchChange}
         />
         
         <SettingsInfoBox variant="info">
           <Text style={styles.infoText}>
-            ℹ️ Make sure "Appear on top" permission is enabled in system settings for reliable auto-launch.
+            ℹ️ {t('security.autoLaunchInfo')}
           </Text>
         </SettingsInfoBox>
         
         <SettingsButton
-          title="Open System Settings"
+          title={t('security.openSystemSettings')}
           icon="cog-outline"
           variant="primary"
           onPress={onOpenSystemSettings}
@@ -221,21 +237,21 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       </SettingsSection>
       
       {/* Return to Settings */}
-      <SettingsSection title="Return to Settings" icon="gesture-tap">
+      <SettingsSection title={t('security.returnToSettings')} icon="gesture-tap">
         <SettingsRadioGroup
-          hint="Choose how to return to settings"
+          hint={t('security.chooseReturnMethod')}
           options={[
             {
               value: 'tap_anywhere',
-              label: 'Tap Anywhere',
+              label: t('security.tapAnywhere'),
               icon: 'gesture-tap',
-              hint: 'Tap N times in the same area (taps must be grouped)',
+              hint: t('security.tapAnywhereHint'),
             },
             {
               value: 'button',
-              label: 'Fixed Button',
+              label: t('security.fixedButton'),
               icon: 'square-outline',
-              hint: 'Tap N times on a corner button',
+              hint: t('security.fixedButtonHint'),
             },
           ]}
           value={returnMode}
@@ -244,8 +260,8 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         <View style={styles.divider} />
         
         <SettingsInput
-          label="Number of Taps (2-20)"
-          hint={returnMode === 'button' ? 'Tap this many times to access settings' : 'Tap anywhere on screen this many times rapidly to access settings'}
+          label={t('security.numberOfTaps')}
+          hint={returnMode === 'button' ? t('security.numberOfTapsHintButton') : t('security.numberOfTapsHintTap')}
           value={returnTapCount}
           onChangeText={(text) => {
             const filtered = text.replace(/[^0-9]/g, '');
@@ -254,12 +270,12 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
           keyboardType="numeric"
           placeholder="5"
           maxLength={2}
-          error={returnTapCount !== '' && (parseInt(returnTapCount, 10) < 2 || parseInt(returnTapCount, 10) > 20) ? 'Must be between 2 and 20' : undefined}
+          error={returnTapCount !== '' && (parseInt(returnTapCount, 10) < 2 || parseInt(returnTapCount, 10) > 20) ? t('security.tapCountError') : undefined}
         />
         
         <SettingsInput
-          label="Detection Timeout (500-5000 ms)"
-          hint="Time window to complete all taps. Higher values make detection easier but may trigger accidentally."
+          label={t('security.detectionTimeout')}
+          hint={t('security.detectionTimeoutHint')}
           value={returnTapTimeout}
           onChangeText={(text) => {
             const filtered = text.replace(/[^0-9]/g, '');
@@ -268,7 +284,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
           keyboardType="numeric"
           placeholder="1500"
           maxLength={4}
-          error={returnTapTimeout !== '' && (parseInt(returnTapTimeout, 10) < 500 || parseInt(returnTapTimeout, 10) > 5000) ? 'Must be between 500 and 5000' : undefined}
+          error={returnTapTimeout !== '' && (parseInt(returnTapTimeout, 10) < 500 || parseInt(returnTapTimeout, 10) > 5000) ? t('security.timeoutError') : undefined}
         />
         
         {returnMode === 'button' && (
@@ -277,12 +293,12 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
             {displayMode === 'external_app' && (
               <>
                 <SettingsRadioGroup
-                  hint="Button position on screen"
+                  hint={t('security.buttonPositionHint')}
                   options={[
-                    { value: 'top-left', label: 'Top Left', icon: 'arrow-top-left' },
-                    { value: 'top-right', label: 'Top Right', icon: 'arrow-top-right' },
-                    { value: 'bottom-left', label: 'Bottom Left', icon: 'arrow-bottom-left' },
-                    { value: 'bottom-right', label: 'Bottom Right', icon: 'arrow-bottom-right' },
+                    { value: 'top-left', label: t('security.positions.topLeft'), icon: 'arrow-top-left' },
+                    { value: 'top-right', label: t('security.positions.topRight'), icon: 'arrow-top-right' },
+                    { value: 'bottom-left', label: t('security.positions.bottomLeft'), icon: 'arrow-bottom-left' },
+                    { value: 'bottom-right', label: t('security.positions.bottomRight'), icon: 'arrow-bottom-right' },
                   ]}
                   value={returnButtonPosition}
                   onValueChange={onReturnButtonPositionChange}
@@ -291,10 +307,10 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
               </>
             )}
             <SettingsSwitch
-              label="👁️ Show Button"
+              label={t('security.showButton')}
               hint={displayMode === 'external_app' 
-                ? "Make the return button visible. When hidden, it's still active but invisible." 
-                : "Show a visual button indicator"}
+                ? t('security.showButtonHintExternal')
+                : t('security.showButtonHint')}
               value={overlayButtonVisible}
               onValueChange={onOverlayButtonVisibleChange}
             />
@@ -304,10 +320,10 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         <>
           <View style={styles.divider} />
           <SettingsSwitch
-            label="🔊 Volume Button Alternative"
+            label={t('security.volumeButtonAlternative')}
             hint={displayMode === 'external_app'
-              ? 'Allow pressing Volume Up/Down multiple times to access settings (disabled by default in App mode to avoid accidental triggers during normal volume adjustment)'
-              : 'Also allow pressing Volume Up/Down button multiple times to access settings'}
+              ? t('security.volumeButtonHintExternal')
+              : t('security.volumeButtonHint')}
             value={volumeUp5TapEnabled}
             onValueChange={onVolumeUp5TapEnabledChange}
           />
@@ -316,31 +332,43 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         <SettingsInfoBox variant="info">
           <Text style={styles.infoText}>
             ℹ️ {returnMode === 'button' && displayMode === 'external_app' 
-              ? `Tap the return button (${returnButtonPosition}) ${returnTapCount || '5'} times to access settings`
-              : `Tap anywhere on screen ${returnTapCount || '5'} times within ${returnTapTimeout ? `${(parseInt(returnTapTimeout, 10) / 1000).toFixed(1)}s` : '1.5s'} to access settings`}
-            {kioskEnabled && ' (PIN required)'}
+              ? t('security.returnInfoButton', {
+                  position: translatePosition(returnButtonPosition),
+                  count: returnTapCount || '5',
+                })
+              : t('security.returnInfoTap', {
+                  count: returnTapCount || '5',
+                  timeout: returnTapTimeout
+                    ? `${(parseInt(returnTapTimeout, 10) / 1000).toFixed(1)}s`
+                    : '1.5s',
+                })}
+            {kioskEnabled && t('security.pinRequired')}
           </Text>
         </SettingsInfoBox>
       </SettingsSection>
       
       {/* Touch Blocking Overlays - Works without Device Owner but less secure */}
-      <SettingsSection title="Touch Blocking" icon="gesture-tap-button">
+      <SettingsSection title={t('security.touchBlocking')} icon="gesture-tap-button">
         <SettingsInfoBox variant="info">
           <Text style={styles.infoText}>
-            ℹ️ Block touch input on specific screen areas (e.g., navigation bars, toolbars) to prevent users from interacting with certain parts of {displayMode === 'webview' ? 'the website' : 'external apps'}.
+            ℹ️ {t('security.touchBlockingInfo', {
+              target: displayMode === 'webview'
+                ? t('security.touchBlockingTargetWebsite')
+                : t('security.touchBlockingTargetExternal'),
+            })}
           </Text>
         </SettingsInfoBox>
         
         {(!kioskEnabled || !isDeviceOwner) && (
           <SettingsInfoBox variant="warning">
             <Text style={styles.infoText}>
-              ⚠️ Without Lock Mode + Device Owner, users can still exit the app via Home/Back buttons. For maximum security, enable both.
+              ⚠️ {t('security.touchBlockingWarning')}
             </Text>
           </SettingsInfoBox>
         )}
         
         <SettingsButton
-          title="Configure Blocking Overlays"
+          title={t('security.configureBlockingOverlays')}
           icon="rectangle-outline"
           variant="primary"
           onPress={() => navigation?.navigate('BlockingOverlays')}
@@ -349,7 +377,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
         {kioskEnabled && isDeviceOwner && (
           <SettingsInfoBox variant="success">
             <Text style={styles.infoText}>
-              ✅ Lock Mode + Device Owner active. Maximum security enabled.
+              ✅ {t('security.maxSecurityEnabled')}
             </Text>
           </SettingsInfoBox>
         )}
@@ -357,10 +385,10 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       
       {/* URL Filtering - Blacklist/Whitelist (WebView mode only) */}
       {displayMode === 'webview' && (
-        <SettingsSection title="URL Filtering" icon="shield-lock">
+        <SettingsSection title={t('security.urlFiltering')} icon="shield-lock">
           <SettingsSwitch
-            label="Enable URL Filtering"
-            hint="Control which URLs can be accessed in the kiosk browser"
+            label={t('security.enableUrlFiltering')}
+            hint={t('security.enableUrlFilteringHint')}
             value={urlFilterEnabled}
             onValueChange={onUrlFilterEnabledChange}
           />
@@ -370,24 +398,24 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
               <View style={styles.divider} />
               
               <SettingsModeSelector
-                label="Filter Mode"
+                label={t('security.filterMode')}
                 options={[
                   {
                     value: 'blacklist',
-                    label: 'Blacklist',
+                    label: t('security.blacklist'),
                     icon: 'close-circle',
                   },
                   {
                     value: 'whitelist',
-                    label: 'Whitelist',
+                    label: t('security.whitelist'),
                     icon: 'check-circle-outline',
                   },
                 ]}
                 value={urlFilterMode}
                 onValueChange={onUrlFilterModeChange}
                 hint={urlFilterMode === 'blacklist' 
-                  ? 'URLs matching these patterns will be blocked. The main kiosk URL is always allowed, even if it matches a pattern.' 
-                  : 'Only the main kiosk URL and URLs matching these patterns will be allowed. With an empty list, only your kiosk URL can be accessed.'}
+                  ? t('security.blacklistHint')
+                  : t('security.whitelistHint')}
               />
               
               <View style={styles.divider} />
@@ -398,33 +426,29 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
                 maxUrls={0}
                 patternMode={true}
                 placeholder={urlFilterMode === 'blacklist' ? '*facebook.com*' : '*mysite.com/*'}
-                emptyTitle="No patterns added yet"
+                emptyTitle={t('security.noPatternsAdded')}
                 emptyHint={urlFilterMode === 'blacklist' 
-                  ? 'Add URL patterns to block' 
-                  : 'Only your main kiosk URL is currently allowed. Add patterns to allow more URLs.'}
+                  ? t('security.addPatternsBlock')
+                  : t('security.whitelistEmptyHint')}
               />
               
               <SettingsInfoBox variant="info">
                 <Text style={styles.infoText}>
-                  {'ℹ️ Use * as wildcard to match any characters.\n\n'}
-                  {'Examples:\n'}
-                  {'• *facebook.com* → matches any URL containing facebook.com\n'}
-                  {'• */privacy* → matches any path containing /privacy\n'}
-                  {'• https://example.com/admin/* → matches all admin pages'}
+                  {'ℹ️ '}{t('security.wildcardExamples')}
                 </Text>
               </SettingsInfoBox>
               
               <SettingsInfoBox variant="success">
                 <Text style={styles.infoText}>
-                  {'✅ The main kiosk URL configured in General settings is always allowed, even if it matches a blacklist pattern. You don\'t need to add it to the whitelist.'}
+                  {'✅ '}{t('security.mainUrlAlwaysAllowed')}
                 </Text>
               </SettingsInfoBox>
               
               <View style={styles.divider} />
               
               <SettingsSwitch
-                label="Show Blocked Notification"
-                hint="Briefly display a toast message when a URL is blocked"
+                label={t('security.showBlockedNotification')}
+                hint={t('security.showBlockedNotificationHint')}
                 value={urlFilterShowFeedback}
                 onValueChange={onUrlFilterShowFeedbackChange}
               />
@@ -437,37 +461,37 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       {displayMode === 'external_app' && (
         <>
           {/* Auto Relaunch */}
-          <SettingsSection title="External App Behavior" icon="application">
+          <SettingsSection title={t('security.externalAppBehavior')} icon="application">
             <SettingsSwitch
-              label="🔄 Auto-Relaunch App"
-              hint="Automatically relaunch the app if it closes or crashes"
+              label={t('security.autoRelaunchApp')}
+              hint={t('security.autoRelaunchAppHint')}
               value={autoRelaunchApp}
               onValueChange={onAutoRelaunchAppChange}
             />
           </SettingsSection>
           
           {/* Back Button Behavior */}
-          <SettingsSection title="Back Button Behavior" icon="undo">
+          <SettingsSection title={t('security.backButtonBehavior')} icon="undo">
             <SettingsRadioGroup
-              hint="Action when the Android Back button is pressed"
+              hint={t('security.backButtonActionHint')}
               options={[
                 {
                   value: 'test',
-                  label: 'Test Mode',
+                  label: t('security.testMode'),
                   icon: 'test-tube',
-                  hint: 'Back button works normally (for testing)',
+                  hint: t('security.testModeHint'),
                 },
                 {
                   value: 'immediate',
-                  label: 'Immediate Return',
+                  label: t('security.immediateReturn'),
                   icon: 'flash',
-                  hint: 'Relaunch app instantly',
+                  hint: t('security.immediateReturnHint'),
                 },
                 {
                   value: 'timer',
-                  label: 'Delayed Return',
+                  label: t('security.delayedReturn'),
                   icon: 'timer',
-                  hint: 'Wait X seconds then relaunch app automatically',
+                  hint: t('security.delayedReturnHint'),
                 },
               ]}
               value={backButtonMode}
@@ -477,7 +501,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
             {backButtonMode === 'timer' && (
               <View style={styles.timerInput}>
                 <SettingsInput
-                  label="Delay (1-3600 seconds)"
+                  label={t('security.delaySeconds')}
                   value={backButtonTimerDelay}
                   onChangeText={(text) => {
                     const num = text.replace(/[^0-9]/g, '');
@@ -495,14 +519,39 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       
       {/* Return Mechanism Info - Always visible */}
       <SettingsSection variant="info">
-        <Text style={styles.infoTitle}>ℹ️ Return to Settings</Text>
+        <Text style={styles.infoTitle}>ℹ️ {t('security.returnToSettings')}</Text>
         <Text style={styles.infoText}>
           {displayMode === 'external_app' && returnMode === 'button'
-            ? `• Tap the return button (${returnButtonPosition}) ${returnTapCount || '5'} times${overlayButtonVisible ? '' : ' (invisible)'}`
-            : `• Tap ${returnTapCount || '5'} times anywhere on the screen within ${returnTapTimeout ? `${(parseInt(returnTapTimeout, 10) / 1000).toFixed(1)}s` : '1.5s'}${overlayButtonVisible ? ' (visual indicator visible)' : ''}`}
-          {displayMode === 'external_app' && '\n• Or use the recent apps selector'}
-          {(displayMode === 'webview' || displayMode === 'media_player') && volumeUp5TapEnabled && `\n• Or press Volume Up/Down ${returnTapCount || '5'} times rapidly`}
+            ? t('security.returnMechanismButton', {
+                position: translatePosition(returnButtonPosition),
+                count: returnTapCount || '5',
+                invisible: overlayButtonVisible ? '' : t('security.invisible'),
+              })
+            : t('security.returnMechanismTap', {
+                count: returnTapCount || '5',
+                timeout: returnTapTimeout
+                  ? `${(parseInt(returnTapTimeout, 10) / 1000).toFixed(1)}s`
+                  : '1.5s',
+                indicator: overlayButtonVisible ? t('security.indicatorVisible') : '',
+              })}
+          {displayMode === 'external_app' && t('security.returnMechanismRecentApps')}
+          {(displayMode === 'webview' || displayMode === 'media_player') && volumeUp5TapEnabled
+            && t('security.returnMechanismVolume', { count: returnTapCount || '5' })}
         </Text>
+      </SettingsSection>
+
+      <SettingsSection title={t('security.exitSection')} icon="exit-to-app">
+        <SettingsInfoBox variant="info">
+          <Text style={styles.infoText}>
+            {t('security.exitInfo')}
+          </Text>
+        </SettingsInfoBox>
+        <SettingsButton
+          title={t('security.exitButton')}
+          icon="exit-to-app"
+          variant="danger"
+          onPress={onExitKioskMode}
+        />
       </SettingsSection>
     </View>
   );

@@ -19,6 +19,7 @@ import SettingsInput from './settings/SettingsInput';
 import Icon from './Icon';
 import { StorageService } from '../utils/storage';
 import { httpServer } from '../utils/HttpServerModule';
+import { t } from '../i18n';
 
 interface ApiSettingsSectionProps {
   onSettingsChanged?: () => void;
@@ -94,7 +95,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
       setLocalIp(result.ip);
     } catch (error: any) {
       console.error('Failed to start server:', error);
-      Alert.alert('Error', `Failed to start API server: ${error.message}`);
+      Alert.alert(t('common.error'), t('api.startFailed', { error: error.message }));
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +185,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
   const copyToClipboard = (text: string, label: string) => {
     Clipboard.setString(text);
-    Alert.alert('Copied', `${label} copied to clipboard`);
+    Alert.alert(t('api.copiedTitle'), t('api.copiedMessage', { label }));
   };
 
   const getApiUrl = () => {
@@ -194,11 +195,11 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
   return (
     <SettingsSection
-      title="REST API"
+      title={t('api.title')}
       icon="api"
     >
       <SettingsSwitch
-        label="Enable REST API"
+        label={t('api.enable')}
         value={apiEnabled}
         onValueChange={handleApiEnabledChange}
         icon="server-network"
@@ -214,7 +215,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
                 { backgroundColor: serverRunning ? '#4CAF50' : '#F44336' }
               ]} />
               <Text style={styles.statusText}>
-                {isLoading ? 'Starting...' : serverRunning ? 'Server Running' : 'Server Stopped'}
+                {isLoading ? t('api.starting') : serverRunning ? t('api.serverRunning') : t('api.serverStopped')}
               </Text>
               {isLoading && <ActivityIndicator size="small" color="#007AFF" style={styles.loader} />}
             </View>
@@ -222,7 +223,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
             {serverRunning && (
               <TouchableOpacity
                 style={styles.urlContainer}
-                onPress={() => copyToClipboard(getApiUrl(), 'API URL')}
+                onPress={() => copyToClipboard(getApiUrl(), t('api.apiUrlLabel'))}
               >
                 <Icon name="link" size={16} color="#007AFF" />
                 <Text style={styles.urlText}>{getApiUrl()}</Text>
@@ -233,25 +234,25 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
           {/* Port Setting */}
           <SettingsInput
-            label="Port"
+            label={t('api.port')}
             value={apiPort}
             onChangeText={handlePortChange}
             placeholder="8080"
             keyboardType="numeric"
             icon="numeric"
-            hint="Port 1024-65535 (default: 8080)"
+            hint={t('api.portHint')}
           />
 
           {/* API Key */}
           <View style={styles.apiKeyContainer}>
             <SettingsInput
-              label="API Key (optional)"
+              label={t('api.apiKey')}
               value={apiKey}
               onChangeText={handleApiKeyChange}
-              placeholder="Leave empty for no authentication"
+              placeholder={t('api.apiKeyPlaceholder')}
               secureTextEntry
               icon="key-variant"
-              hint="Used as X-Api-Key header"
+              hint={t('api.apiKeyHint')}
             />
             <View style={styles.apiKeyButtons}>
               <TouchableOpacity
@@ -259,15 +260,15 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
                 onPress={generateApiKey}
               >
                 <Icon name="refresh" size={16} color="#007AFF" />
-                <Text style={styles.smallButtonText}>Generate</Text>
+                <Text style={styles.smallButtonText}>{t('api.generate')}</Text>
               </TouchableOpacity>
               {apiKey ? (
                 <TouchableOpacity
                   style={styles.smallButton}
-                  onPress={() => copyToClipboard(apiKey, 'API Key')}
+                  onPress={() => copyToClipboard(apiKey, t('api.apiKeyLabel'))}
                 >
                   <Icon name="content-copy" size={16} color="#007AFF" />
-                  <Text style={styles.smallButtonText}>Copy</Text>
+                  <Text style={styles.smallButtonText}>{t('api.copy')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -275,19 +276,19 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
           {/* Allow Control */}
           <SettingsSwitch
-            label="Allow Remote Control"
+            label={t('api.allowRemoteControl')}
             value={allowControl}
             onValueChange={handleAllowControlChange}
             icon="remote"
-            hint="Enable POST commands (brightness, reload, etc.)"
+            hint={t('api.allowRemoteControlHint')}
           />
 
           {/* API Endpoints Info */}
           <View style={styles.endpointsContainer}>
-            <Text style={styles.endpointsTitle}>Available Endpoints:</Text>
+            <Text style={styles.endpointsTitle}>{t('api.endpointsTitle')}</Text>
             
             <View style={styles.endpointCategory}>
-              <Text style={styles.categoryLabel}>GET (Read-only)</Text>
+              <Text style={styles.categoryLabel}>{t('api.categoryGet')}</Text>
               <Text style={styles.endpoint}>/api/status - Full device status</Text>
               <Text style={styles.endpoint}>/api/battery - Battery info</Text>
               <Text style={styles.endpoint}>/api/brightness - Current brightness</Text>
@@ -303,7 +304,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
             {allowControl && (
               <View style={styles.endpointCategory}>
-                <Text style={styles.categoryLabel}>POST (Control)</Text>
+                <Text style={styles.categoryLabel}>{t('api.categoryPostControl')}</Text>
                 <Text style={styles.endpoint}>/api/brightness - Set brightness</Text>
                 <Text style={styles.endpoint}>/api/screen/on - Turn screen on</Text>
                 <Text style={styles.endpoint}>/api/screen/off - Turn screen off</Text>
@@ -327,7 +328,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
 
             {allowControl && (
               <View style={styles.endpointCategory}>
-                <Text style={styles.categoryLabel}>POST (Remote Control - Android TV)</Text>
+                <Text style={styles.categoryLabel}>{t('api.categoryPostRemote')}</Text>
                 <Text style={styles.endpoint}>/api/remote/up - D-pad up</Text>
                 <Text style={styles.endpoint}>/api/remote/down - D-pad down</Text>
                 <Text style={styles.endpoint}>/api/remote/left - D-pad left</Text>
@@ -345,7 +346,7 @@ export const ApiSettingsSection: React.FC<ApiSettingsSectionProps> = ({
           <View style={styles.hintContainer}>
             <Icon name="home-assistant" size={20} color="#41BDF5" />
             <Text style={styles.hintText}>
-              Use with Home Assistant's RESTful integration. See documentation for configuration examples.
+              {t('api.haHint')}
             </Text>
           </View>
         </>

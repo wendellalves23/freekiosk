@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { verifySecurePin, getLockoutStatus, hasSecurePin } from '../utils/secureStorage';
 import { StorageService } from '../utils/storage';
+import { t } from '../i18n';
 
 interface PinInputProps {
   onSuccess: () => void;
@@ -60,14 +61,14 @@ const PinInput: React.FC<PinInputProps> = ({ onSuccess }) => {
   const handleSubmit = async (): Promise<void> => {
     if (isLockedOut) {
       Alert.alert(
-        '🔒 Locked Out',
-        `Too many failed attempts.\n\nTry again in ${Math.ceil(lockoutTimeRemaining / 60000)} minutes.`
+        t('pin.lockedOutTitle'),
+        t('pin.lockedOutMessage', { minutes: Math.ceil(lockoutTimeRemaining / 60000) })
       );
       return;
     }
 
     if (pin.length < 4) {
-      Alert.alert('Error', 'Password must be at least 4 characters');
+      Alert.alert(t('common.error'), t('pin.pinTooShort'));
       return;
     }
 
@@ -86,22 +87,22 @@ const PinInput: React.FC<PinInputProps> = ({ onSuccess }) => {
           setIsLockedOut(true);
           setLockoutTimeRemaining(result.lockoutTimeRemaining);
           Alert.alert(
-            '🔒 Too Many Failed Attempts',
-            result.message || 'Account locked for 15 minutes',
-            [{ text: 'OK' }]
+            t('pin.tooManyAttemptsTitle'),
+            result.message || t('pin.accountLocked'),
+            [{ text: t('common.ok') }]
           );
         } else {
           setAttemptsRemaining(result.attemptsRemaining || 0);
           Alert.alert(
-            '❌ Incorrect PIN',
-            `${result.attemptsRemaining || 0} attempts remaining`,
-            [{ text: 'Try Again' }]
+            t('pin.incorrectPinTitle'),
+            t('pin.attemptsRemaining', { count: result.attemptsRemaining || 0 }),
+            [{ text: t('common.tryAgain') }]
           );
         }
       }
     } catch (error) {
       console.error('[PinInput] Error verifying PIN:', error);
-      Alert.alert('Error', 'An error occurred. Please try again.');
+      Alert.alert(t('common.error'), t('pin.genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -115,31 +116,33 @@ const PinInput: React.FC<PinInputProps> = ({ onSuccess }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{pinMode === 'alphanumeric' ? 'Enter Password' : 'Enter PIN Code'}</Text>
+      <Text style={styles.title}>
+        {pinMode === 'alphanumeric' ? t('pin.enterPassword') : t('pin.enterPin')}
+      </Text>
 
       {isLockedOut ? (
         <>
           <View style={styles.lockoutContainer}>
             <Text style={styles.lockoutIcon}>🔒</Text>
-            <Text style={styles.lockoutTitle}>Account Locked</Text>
+            <Text style={styles.lockoutTitle}>{t('pin.accountLockedTitle')}</Text>
             <Text style={styles.lockoutText}>
-              Too many failed attempts
+              {t('pin.tooManyFailedAttempts')}
             </Text>
             <Text style={styles.lockoutTimer}>
-              Retry in: {formatTime(lockoutTimeRemaining)}
+              {t('pin.retryIn', { time: formatTime(lockoutTimeRemaining) })}
             </Text>
           </View>
         </>
       ) : (
         <>
           {!hasPinConfigured && (
-            <Text style={styles.subtitle}>Default code: 1234</Text>
+            <Text style={styles.subtitle}>{t('pin.defaultCodeHint')}</Text>
           )}
 
           {attemptsRemaining < 5 && (
             <View style={styles.warningContainer}>
               <Text style={styles.warningText}>
-                ⚠️ {attemptsRemaining} attempts remaining
+                ⚠️ {t('pin.attemptsRemainingWarning', { count: attemptsRemaining })}
               </Text>
             </View>
           )}
@@ -152,7 +155,7 @@ const PinInput: React.FC<PinInputProps> = ({ onSuccess }) => {
             secureTextEntry={true}
             keyboardType={pinMode === 'alphanumeric' ? 'default' : 'numeric'}
             maxLength={pinMode === 'alphanumeric' ? undefined : 6}
-            placeholder={pinMode === 'alphanumeric' ? 'Enter password' : '••••'}
+            placeholder={pinMode === 'alphanumeric' ? t('pin.passwordPlaceholder') : '••••'}
             placeholderTextColor="#999999"
             autoFocus
             autoCapitalize={pinMode === 'alphanumeric' ? 'none' : undefined}
@@ -171,7 +174,7 @@ const PinInput: React.FC<PinInputProps> = ({ onSuccess }) => {
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Validate</Text>
+              <Text style={styles.buttonText}>{t('pin.validate')}</Text>
             )}
           </TouchableOpacity>
         </>

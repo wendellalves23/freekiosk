@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { DashboardTile } from '../types/dashboard';
 import { getColorForLabel } from '../utils/dashboardColors';
+import { t } from '../i18n';
 
 interface DashboardGridProps {
   tiles: DashboardTile[];
@@ -120,9 +121,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ tiles, onTilePress, onUse
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            Configure your first tile in the Dashboard tab.
-          </Text>
+          <Text style={styles.emptyText}>{t('dashboard.empty')}</Text>
         </View>
       }
     />

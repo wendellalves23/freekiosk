@@ -9,6 +9,7 @@ import { Colors, Spacing, Typography } from '../../theme';
 import { ScheduledEvent } from '../../types/planner';
 import ScheduleEventCard from './ScheduleEventCard';
 import Icon from '../Icon';
+import { t } from '../../i18n';
 
 interface ScheduleEventListProps {
   events: ScheduledEvent[];
@@ -38,12 +39,14 @@ const ScheduleEventList: React.FC<ScheduleEventListProps> = ({
 
   const handleDelete = (event: ScheduledEvent) => {
     Alert.alert(
-      'Delete Event',
-      `Are you sure you want to delete "${event.name || 'this event'}"?`,
+      t('planner.deleteEvent'),
+      t('planner.deleteEventConfirm', {
+        name: event.name || t('planner.thisEvent'),
+      }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             const updatedEvents = events.filter(e => e.id !== event.id);
@@ -75,7 +78,11 @@ const ScheduleEventList: React.FC<ScheduleEventListProps> = ({
       {events.length > 0 && (
         <View style={styles.statsRow}>
           <Text style={styles.statsText}>
-            {activeCount} active • {recurringCount} recurring • {oneTimeCount} one-time
+            {t('planner.stats', {
+              active: activeCount,
+              recurring: recurringCount,
+              oneTime: oneTimeCount,
+            })}
           </Text>
         </View>
       )}
@@ -83,9 +90,9 @@ const ScheduleEventList: React.FC<ScheduleEventListProps> = ({
       {sortedEvents.length === 0 ? (
         <View style={styles.emptyState}>
           <Icon name="calendar" size={40} color={Colors.textHint} style={styles.emptyIcon} />
-          <Text style={styles.emptyTitle}>No Scheduled Events</Text>
+          <Text style={styles.emptyTitle}>{t('planner.noEvents')}</Text>
           <Text style={styles.emptyText}>
-            Add recurring or one-time events to display{'\n'}different URLs at specific times.
+            {t('planner.noEventsHint')}
           </Text>
         </View>
       ) : (
@@ -117,7 +124,7 @@ const ScheduleEventList: React.FC<ScheduleEventListProps> = ({
             styles.addButtonText,
             (!canAddMore || disabled) && styles.addButtonTextDisabled,
           ]}>
-            Add Recurring Event
+            {t('planner.addRecurring')}
           </Text>
         </TouchableOpacity>
 
@@ -135,14 +142,14 @@ const ScheduleEventList: React.FC<ScheduleEventListProps> = ({
             styles.addButtonText,
             (!canAddMore || disabled) && styles.addButtonTextDisabled,
           ]}>
-            Add One-Time Event
+            {t('planner.addOneTime')}
           </Text>
         </TouchableOpacity>
       </View>
 
       {!canAddMore && (
         <Text style={styles.limitText}>
-          Maximum {maxEvents} events reached
+          {t('planner.maxEvents', { max: maxEvents })}
         </Text>
       )}
     </View>

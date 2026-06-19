@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, FlatList, 
 import StatusBar from './StatusBar';
 import AppLauncherModule, { AppInfo } from '../utils/AppLauncherModule';
 import { ManagedApp } from '../types/managedApps';
+import { t } from '../i18n';
 
 interface ExternalAppOverlayProps {
   /** Legacy single-app package (backward compat) */
@@ -237,7 +238,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
             style={styles.miniLogo}
             resizeMode="contain"
           />
-          <Text style={styles.multiAppTitle}>FreeKiosk</Text>
+          <Text style={styles.multiAppTitle}>{t('kiosk.appName')}</Text>
         </View>
         <FlatList
           data={homeScreenApps}
@@ -251,7 +252,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
         {/* Test mode warning */}
         {backButtonMode === 'test' && (
           <View style={styles.testModeBar}>
-            <Text style={styles.testModeText}>🧪 Test Mode — Back button returns to settings</Text>
+            <Text style={styles.testModeText}>{t('externalApp.testModeBar')}</Text>
           </View>
         )}
 
@@ -306,8 +307,8 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>FreeKiosk</Text>
-          <Text style={styles.subtitle}>External App Mode</Text>
+          <Text style={styles.title}>{t('kiosk.appName')}</Text>
+          <Text style={styles.subtitle}>{t('externalApp.subtitle')}</Text>
 
           {/* Status Message */}
           <View style={styles.statusContainer}>
@@ -316,9 +317,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
                 {isAppLaunched ? '📱' : '⏳'}
               </Text>
               <Text style={styles.statusText}>
-                {isAppLaunched
-                  ? 'External application is running'
-                  : 'Waiting for application...'}
+                {isAppLaunched ? t('externalApp.appRunning') : t('externalApp.waitingForApp')}
               </Text>
               {externalAppPackage && (
                 <Text style={styles.packageName}>{appLabels[externalAppPackage] || externalAppPackage}</Text>
@@ -331,10 +330,8 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
             <View style={styles.warningContainer}>
               <View style={styles.warningCard}>
                 <Text style={styles.warningIcon}>🧪</Text>
-                <Text style={styles.warningTitle}>Test Mode Active</Text>
-                <Text style={styles.warningText}>
-                  You can use the Android back button to return to FreeKiosk.
-                </Text>
+                <Text style={styles.warningTitle}>{t('externalApp.testModeTitle')}</Text>
+                <Text style={styles.warningText}>{t('externalApp.testModeText')}</Text>
               </View>
             </View>
           )}
@@ -346,9 +343,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
               onPress={onReturnToApp}
               activeOpacity={0.8}
             >
-              <Text style={styles.primaryButtonText}>
-                ↩ Return to Application
-              </Text>
+              <Text style={styles.primaryButtonText}>{t('externalApp.returnToApp')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -356,15 +351,13 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
               onPress={onGoToSettings}
               activeOpacity={0.8}
             >
-              <Text style={styles.secondaryButtonText}>⚙ Settings</Text>
+              <Text style={styles.secondaryButtonText}>{t('externalApp.settings')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Hint */}
           <View style={styles.hintContainer}>
-            <Text style={styles.hintText}>
-              💡 Tip: While in the external app, tap 5× on the secret button to return here (position configurable)
-            </Text>
+            <Text style={styles.hintText}>{t('externalApp.hint')}</Text>
           </View>
         </View>
       </ScrollView>

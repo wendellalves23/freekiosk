@@ -5,6 +5,7 @@ import { StorageService } from '../utils/storage';
 import { migrateOldPin, hasSecurePin } from '../utils/secureStorage';
 import AppLauncherModule from '../utils/AppLauncherModule';
 import { grantSettingsAccess } from '../utils/authState';
+import { t } from '../i18n';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -116,7 +117,7 @@ const PinScreen: React.FC<PinScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Text style={styles.backButtonText}>↩️ Back to Kiosk</Text>
+        <Text style={styles.backButtonText}>↩️ {t('pin.backToKiosk')}</Text>
       </TouchableOpacity>
 
       <PinInput onSuccess={handleSuccess} storedPin={storedPin} />

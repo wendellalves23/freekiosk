@@ -8,6 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
 import { ScheduledEvent, getDaysDisplayString, formatDateDisplay, isEventActive } from '../../types/planner';
 import Icon from '../Icon';
+import { t } from '../../i18n';
 
 interface ScheduleEventCardProps {
   event: ScheduledEvent;
@@ -29,7 +30,7 @@ const ScheduleEventCard: React.FC<ScheduleEventCardProps> = ({
       const days = getDaysDisplayString(event.days || []);
       const time = event.startTime && event.endTime 
         ? `${event.startTime} - ${event.endTime}` 
-        : 'All day';
+        : t('planner.allDay');
       return `${days} • ${time}`;
     }
     
@@ -39,7 +40,7 @@ const ScheduleEventCard: React.FC<ScheduleEventCardProps> = ({
         ? ` - ${formatDateDisplay(event.endDate)}` 
         : '';
       const timeStr = event.allDay 
-        ? 'All day' 
+        ? t('planner.allDay')
         : (event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : '');
       return `${startStr}${endStr}${timeStr ? ` • ${timeStr}` : ''}`;
     }
@@ -68,13 +69,13 @@ const ScheduleEventCard: React.FC<ScheduleEventCardProps> = ({
               style={styles.typeIcon}
             />
             <Text style={[styles.name, !event.enabled && styles.textDisabled]} numberOfLines={1}>
-              {event.name || 'Unnamed Event'}
+              {event.name || t('planner.unnamedEvent')}
             </Text>
           </View>
           {isActive && event.enabled && (
             <View style={styles.activeBadge}>
               <Icon name="check-circle" size={12} color={Colors.success} />
-              <Text style={styles.activeBadgeText}>Active</Text>
+              <Text style={styles.activeBadgeText}>{t('planner.active')}</Text>
             </View>
           )}
         </View>

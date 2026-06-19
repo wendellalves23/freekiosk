@@ -12,6 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Tradução pt-BR (tela do kiosk)**: Boas-vindas, carregamento, erros de WebView, modo app externo, player de mídia e grade do painel em português.
+
+***
+
+## [1.2.25] - 2026-06-19
+
+### Added
+- **Tradução pt-BR completa (Settings)**: Todas as abas de configurações, componentes auxiliares (REST API, MQTT, backup, planner, overlays de bloqueio, lista de URLs) e alertas migrados para português.
+
+***
+
+## [1.2.24] - 2026-06-19
+
+### Added
+- **Tradução pt-BR (Settings + PIN)**: Interface de configurações e tela de PIN em português (locale fixo `pt_br`).
+- **Auto-save URL FILARE**: Após pareamento ou navegação para `/painel/`, `/totem/` ou `/tv/`, a URL canônica (sem `deviceToken`/`lowMemory`) é salva automaticamente — o TV box reabre no painel pareado após reinício.
+- **Usar URL atual da página**: Botão em Settings → Geral quando a URL navegada difere da configurada.
+- **Sair do aplicativo**: Seção sempre visível em Settings → Segurança (removida duplicata condicional em Avançado).
+
+### Fixed
+- **Perfil low memory invisível em totens**: `isFilarePanelUrl` agora inclui URLs `/totem/{tenant}/{code}` — a seção "Perfil painel FILARE (economia RAM)" aparece também para totens.
+
 ***
 
 ## [1.2.23] - 2026-06-19

@@ -28,6 +28,7 @@ import {
   BackupData,
 } from '../../utils/BackupService';
 import FilePickerModule from '../../utils/FilePickerModule';
+import { t } from '../../i18n';
 
 interface BackupFile {
   name: string;
@@ -70,19 +71,19 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
       // Build JSON content first
       const built = await buildBackupJson();
       if (!built.success || !built.json || !built.filename) {
-        Alert.alert('❌ Export Failed', built.error || 'Failed to prepare backup data', [{ text: 'OK' }]);
+        Alert.alert(t('backup.exportFailed'), built.error || t('backup.exportPrepareFailed'), [{ text: t('common.ok') }]);
         return;
       }
       // Use SAF "Save As" dialog — works on all Android versions without storage permissions
       const saved = await FilePickerModule.saveJsonFile(built.json, built.filename);
       Alert.alert(
-        '✅ Backup Created',
-        `Configuration exported successfully!\n\nSaved as: ${saved.name}`,
-        [{ text: 'OK' }]
+        t('backup.exportSuccess'),
+        t('backup.exportSuccessMessage', { name: saved.name }),
+        [{ text: t('common.ok') }]
       );
     } catch (error: any) {
       if (error?.code === 'PICKER_CANCELLED') return;
-      Alert.alert('❌ Export Failed', error?.message || String(error), [{ text: 'OK' }]);
+      Alert.alert(t('backup.exportFailed'), error?.message || String(error), [{ text: t('common.ok') }]);
     } finally {
       setIsExporting(false);
     }
@@ -109,7 +110,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
 
   const handleBrowseFile = async () => {
     if (Platform.OS !== 'android') {
-      Alert.alert('Not Supported', 'File browsing is only available on Android.');
+      Alert.alert(t('backup.notSupported'), t('backup.androidOnly'));
       return;
     }
 
@@ -121,20 +122,20 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
           // Clear any previous file-based selection
           setSelectedBackup(null);
           setBrowsedContent(result.content);
-          setBrowsedFileName(result.name || 'Selected backup');
+          setBrowsedFileName(result.name || t('backup.selectedBackupName'));
           setBackupPreview(parsed.data);
         } else {
           Alert.alert(
-            '❌ Invalid Backup',
-            parsed.error || 'The selected file is not a valid FreeKiosk backup.',
-            [{ text: 'OK' }]
+            t('backup.invalidBackup'),
+            parsed.error || t('backup.invalidBackupMessage'),
+            [{ text: t('common.ok') }]
           );
         }
       }
     } catch (error: any) {
       if (error?.code === 'PICKER_CANCELLED') return;
       console.error('Browse file error:', error);
-      Alert.alert('Error', `Failed to browse file: ${error?.message || String(error)}`);
+      Alert.alert(t('common.error'), t('backup.browseFailed', { error: error?.message || String(error) }));
     }
   };
 
@@ -142,27 +143,27 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
     if (!browsedContent) return;
 
     Alert.alert(
-      '⚠️ Restore Configuration',
-      `This will replace all current settings with the backup from "${browsedFileName}".\n\nAre you sure you want to continue?`,
+      t('backup.restoreTitle'),
+      t('backup.restoreMessageNamed', { name: browsedFileName || t('backup.selectedBackupName') }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Restore',
+          text: t('backup.restore'),
           style: 'destructive',
           onPress: async () => {
             setIsRestoring(true);
             try {
               const result = await importBackupFromContent(browsedContent, browsedFileName || undefined);
               if (result.success) {
-                let message = 'Configuration restored successfully!';
+                let message = t('backup.restoreSuccess');
                 if (result.warning) {
                   message += `\n\n${result.warning}`;
                 }
-                message += '\n\nPlease restart the app for all changes to take effect.';
+                message += `\n\n${t('backup.restartHint')}`;
 
-                Alert.alert('✅ Restore Complete', message, [
+                Alert.alert(t('backup.restoreComplete'), message, [
                   {
-                    text: 'OK',
+                    text: t('common.ok'),
                     onPress: () => {
                       setShowRestoreModal(false);
                       setSelectedBackup(null);
@@ -175,9 +176,9 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
                 ]);
               } else {
                 Alert.alert(
-                  '❌ Restore Failed',
-                  result.error || 'Unknown error occurred',
-                  [{ text: 'OK' }]
+                  t('backup.restoreFailed'),
+                  result.error || t('backup.unknownError'),
+                  [{ text: t('common.ok') }]
                 );
               }
             } finally {
@@ -193,27 +194,27 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
     if (!selectedBackup) return;
 
     Alert.alert(
-      '⚠️ Restore Configuration',
-      'This will replace all current settings with the backup.\n\nAre you sure you want to continue?',
+      t('backup.restoreTitle'),
+      t('backup.restoreMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Restore',
+          text: t('backup.restore'),
           style: 'destructive',
           onPress: async () => {
             setIsRestoring(true);
             try {
               const result = await importBackup(selectedBackup.path);
               if (result.success) {
-                let message = 'Configuration restored successfully!';
+                let message = t('backup.restoreSuccess');
                 if (result.warning) {
                   message += `\n\n${result.warning}`;
                 }
-                message += '\n\nPlease restart the app for all changes to take effect.';
+                message += `\n\n${t('backup.restartHint')}`;
                 
-                Alert.alert('✅ Restore Complete', message, [
+                Alert.alert(t('backup.restoreComplete'), message, [
                   {
-                    text: 'OK',
+                    text: t('common.ok'),
                     onPress: () => {
                       setShowRestoreModal(false);
                       setSelectedBackup(null);
@@ -224,9 +225,9 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
                 ]);
               } else {
                 Alert.alert(
-                  '❌ Restore Failed',
-                  result.error || 'Unknown error occurred',
-                  [{ text: 'OK' }]
+                  t('backup.restoreFailed'),
+                  result.error || t('backup.unknownError'),
+                  [{ text: t('common.ok') }]
                 );
               }
             } finally {
@@ -240,12 +241,12 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
 
   const handleDeleteBackup = async (file: BackupFile) => {
     Alert.alert(
-      '🗑️ Delete Backup',
-      `Are you sure you want to delete this backup?\n\n${file.name}`,
+      t('backup.deleteTitle'),
+      t('backup.deleteMessage', { name: file.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('backup.delete'),
           style: 'destructive',
           onPress: async () => {
             const result = await deleteBackupFile(file.path);
@@ -256,7 +257,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
               }
               await loadBackupFiles();
             } else {
-              Alert.alert('Error', result.error || 'Failed to delete backup');
+              Alert.alert(t('common.error'), result.error || t('backup.deleteFailed'));
             }
           },
         },
@@ -265,7 +266,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
   };
 
   const formatDate = (dateString: string): string => {
-    if (!dateString) return 'Unknown date';
+    if (!dateString) return t('backup.unknownDate');
     try {
       const date = new Date(dateString);
       return date.toLocaleString();
@@ -319,12 +320,11 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Icon name="content-copy" size={20} color={Colors.textSecondary} />
-        <Text style={styles.headerTitle}>Backup & Restore</Text>
+        <Text style={styles.headerTitle}>{t('backup.title')}</Text>
       </View>
       
       <Text style={styles.description}>
-        Export your current configuration or restore from a previous backup.
-        PIN codes are not included in backups for security.
+        {t('backup.description')}
       </Text>
 
       <View style={styles.buttonRow}>
@@ -338,7 +338,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
           ) : (
             <>
               <Icon name="upload" size={18} color={Colors.textOnPrimary} />
-              <Text style={styles.actionButtonText}>Export</Text>
+              <Text style={styles.actionButtonText}>{t('backup.export')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -348,7 +348,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
           onPress={handleOpenRestoreModal}
         >
           <Icon name="download" size={18} color={Colors.primary} />
-          <Text style={styles.importButtonText}>Import</Text>
+          <Text style={styles.importButtonText}>{t('backup.import')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -360,7 +360,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>📂 Select Backup to Restore</Text>
+            <Text style={styles.modalTitle}>{t('backup.restoreModalTitle')}</Text>
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => {
@@ -383,7 +383,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
                 onPress={handleBrowseFile}
               >
                 <Icon name="folder-open-outline" size={20} color={Colors.primary} />
-                <Text style={styles.browseButtonText}>Browse device for backup file...</Text>
+                <Text style={styles.browseButtonText}>{t('backup.browseDevice')}</Text>
               </TouchableOpacity>
             )}
 
@@ -392,7 +392,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
               <View style={styles.browsedFileIndicator}>
                 <Icon name="file-document-outline" size={18} color={Colors.success} />
                 <Text style={styles.browsedFileText} numberOfLines={1}>
-                  Selected: {browsedFileName}
+                  {t('backup.selected', { name: browsedFileName })}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -408,19 +408,18 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
 
             {/* Backup List */}
             <View style={styles.listSection}>
-              <Text style={styles.sectionTitle}>Available Backups</Text>
+              <Text style={styles.sectionTitle}>{t('backup.availableBackups')}</Text>
               {loadingFiles ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={Colors.primary} />
-                  <Text style={styles.loadingText}>Loading backups...</Text>
+                  <Text style={styles.loadingText}>{t('backup.loadingBackups')}</Text>
                 </View>
               ) : backupFiles.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Icon name="calendar" size={48} color={Colors.textHint} />
-                  <Text style={styles.emptyText}>No backups found</Text>
+                  <Text style={styles.emptyText}>{t('backup.noBackups')}</Text>
                   <Text style={styles.emptySubtext}>
-                    Only backups created by this app are listed here.{'\n'}
-                    Use "Browse device" above to import backups from other devices or pushed via ADB.
+                    {t('backup.noBackupsHint')}
                   </Text>
                 </View>
               ) : (
@@ -437,37 +436,37 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
             {/* Preview Section */}
             {(selectedBackup || browsedContent) && (
               <View style={styles.previewSection}>
-                <Text style={styles.sectionTitle}>Backup Details</Text>
+                <Text style={styles.sectionTitle}>{t('backup.backupDetails')}</Text>
                 <View style={styles.previewCard}>
                   {backupPreview ? (
                     <>
                       <View style={styles.previewRow}>
-                        <Text style={styles.previewLabel}>App Version:</Text>
-                        <Text style={styles.previewValue}>{backupPreview.appVersion || 'Unknown'}</Text>
+                        <Text style={styles.previewLabel}>{t('backup.appVersion')}</Text>
+                        <Text style={styles.previewValue}>{backupPreview.appVersion || t('backup.unknown')}</Text>
                       </View>
                       <View style={styles.previewRow}>
-                        <Text style={styles.previewLabel}>Export Date:</Text>
+                        <Text style={styles.previewLabel}>{t('backup.exportDate')}</Text>
                         <Text style={styles.previewValue}>{formatDate(backupPreview.exportDate)}</Text>
                       </View>
                       <View style={styles.previewRow}>
-                        <Text style={styles.previewLabel}>Settings Count:</Text>
+                        <Text style={styles.previewLabel}>{t('backup.settingsCount')}</Text>
                         <Text style={styles.previewValue}>{getSettingsCount(backupPreview)}</Text>
                       </View>
                       <View style={styles.previewRow}>
-                        <Text style={styles.previewLabel}>Had PIN:</Text>
+                        <Text style={styles.previewLabel}>{t('backup.hadPin')}</Text>
                         <Text style={styles.previewValue}>
-                          {backupPreview.hasPinConfigured ? 'Yes (not included)' : 'No'}
+                          {backupPreview.hasPinConfigured ? t('backup.yesNotIncluded') : t('backup.no')}
                         </Text>
                       </View>
                       {browsedContent && (
                         <View style={styles.previewRow}>
-                          <Text style={styles.previewLabel}>Source:</Text>
-                          <Text style={styles.previewValue}>📂 Browsed file</Text>
+                          <Text style={styles.previewLabel}>{t('backup.source')}</Text>
+                          <Text style={styles.previewValue}>{t('backup.browsedFile')}</Text>
                         </View>
                       )}
                     </>
                   ) : (
-                    <Text style={styles.previewError}>Unable to read backup details</Text>
+                    <Text style={styles.previewError}>{t('backup.unableToRead')}</Text>
                   )}
                 </View>
 
@@ -484,7 +483,7 @@ const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
                   ) : (
                     <>
                       <Icon name="refresh" size={18} color={Colors.textOnPrimary} />
-                      <Text style={styles.restoreButtonText}>Restore This Backup</Text>
+                      <Text style={styles.restoreButtonText}>{t('backup.restoreThisBackup')}</Text>
                     </>
                   )}
                 </TouchableOpacity>

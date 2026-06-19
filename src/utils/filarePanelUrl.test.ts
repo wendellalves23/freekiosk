@@ -10,6 +10,11 @@ describe('isFilarePanelUrl', () => {
     expect(isFilarePanelUrl('https://app.example.com/tv/gloria/sign-1')).toBe(true);
   });
 
+  it('matches FILARE totem URLs', () => {
+    expect(isFilarePanelUrl('https://app.example.com/totem/gloria/TOT1')).toBe(true);
+    expect(isFilarePanelUrl('https://app.example.com/totem/gloria/TOT1?deviceToken=x')).toBe(true);
+  });
+
   it('rejects unrelated URLs', () => {
     expect(isFilarePanelUrl('https://app.example.com/admin')).toBe(false);
     expect(isFilarePanelUrl('about:blank')).toBe(false);

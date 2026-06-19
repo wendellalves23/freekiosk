@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { Colors, Spacing, Typography } from '../../theme';
+import { t } from '../../i18n';
 
 interface UrlListEditorProps {
   urls: string[];
@@ -78,20 +79,20 @@ const UrlListEditor: React.FC<UrlListEditorProps> = ({
 
   const handleAddUrl = () => {
     if (!newUrl.trim()) {
-      Alert.alert('Error', patternMode ? 'Please enter a pattern' : 'Please enter a URL');
+      Alert.alert(t('common.error'), patternMode ? t('urlList.enterPattern') : t('urlList.enterUrl'));
       return;
     }
 
     if (!validateUrl(newUrl)) {
       Alert.alert(
-        patternMode ? 'Invalid Pattern' : 'Invalid URL', 
-        patternMode ? 'Please enter a valid pattern (e.g., *facebook.com*)' : 'Please enter a valid URL (e.g., example.com)'
+        patternMode ? t('urlList.invalidPattern') : t('urlList.invalidUrl'),
+        patternMode ? t('urlList.invalidPatternMessage') : t('urlList.invalidUrlMessage')
       );
       return;
     }
 
     if (maxUrls > 0 && urls.length >= maxUrls) {
-      Alert.alert('Limit Reached', `Maximum ${maxUrls} entries allowed`);
+      Alert.alert(t('urlList.limitReached'), t('urlList.maxEntries', { max: maxUrls }));
       return;
     }
 
@@ -99,7 +100,7 @@ const UrlListEditor: React.FC<UrlListEditorProps> = ({
     
     // Check for duplicates
     if (urls.includes(normalized)) {
-      Alert.alert('Duplicate', 'This URL is already in the list');
+      Alert.alert(t('urlList.duplicate'), t('urlList.duplicateMessage'));
       return;
     }
 
@@ -172,8 +173,8 @@ const UrlListEditor: React.FC<UrlListEditorProps> = ({
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyStateIcon}>{patternMode ? '🔗' : '📋'}</Text>
-          <Text style={styles.emptyStateText}>{emptyTitle || 'No URLs added yet'}</Text>
-          <Text style={styles.emptyStateHint}>{emptyHint || 'Add URLs below to start rotation'}</Text>
+          <Text style={styles.emptyStateText}>{emptyTitle || t('urlList.noUrlsYet')}</Text>
+          <Text style={styles.emptyStateHint}>{emptyHint || t('urlList.addUrlsHint')}</Text>
         </View>
       )}
 
@@ -201,7 +202,16 @@ const UrlListEditor: React.FC<UrlListEditorProps> = ({
         </View>
         
         <Text style={styles.countText}>
-          {maxUrls > 0 ? `${urls.length} / ${maxUrls} ${patternMode ? 'patterns' : 'URLs'}` : `${urls.length} ${patternMode ? 'patterns' : 'URLs'}`}
+          {maxUrls > 0
+            ? t('urlList.countLimited', {
+                current: urls.length,
+                max: maxUrls,
+                type: patternMode ? t('urlList.patterns') : t('urlList.urls'),
+              })
+            : t('urlList.countUnlimited', {
+                current: urls.length,
+                type: patternMode ? t('urlList.patterns') : t('urlList.urls'),
+              })}
         </Text>
       </View>
     </View>
