@@ -1,0 +1,94 @@
+# Dependências (maior impacto no limite de contexto)
+**/node_modules/
+
+# Builds e caches
+**/build/
+**/.gradle/
+**/.cxx/
+**/.turbo/
+**/dist/
+**/.cache/
+**/.metro-health-check*
+
+# Android
+android/app/build/
+android/build/
+.jdk/
+.jdk-download.tar.gz
+local.properties
+
+# iOS / CocoaPods
+**/Pods/
+**/DerivedData/
+**/xcuserdata/
+vendor/bundle/
+
+# Testes e cobertura
+**/coverage/
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/
+**/fastlane/test_output/
+
+# Releases e binários
+release-builds/
+**/*.apk
+**/*.aab
+!app-release.apk
+**/*.ipa
+**/*.jsbundle
+**/*.keystore
+!**/debug.keystore
+
+# Logs e temporários
+**/*.log
+logs/
+**/.DS_Store
+
+# Segredos (nunca indexar)
+.env
+.env.*
+!.env.example
+
+# Yarn (cache interno)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Mídia pesada — pastas
+src/assets/
+android/app/src/main/res/drawable*/
+android/app/src/main/res/mipmap*/
+
+# Mídia pesada — extensões
+**/*.mp4
+**/*.webm
+**/*.mov
+**/*.avi
+**/*.mkv
+**/*.m4v
+**/*.mp3
+**/*.wav
+**/*.ogg
+**/*.flac
+**/*.m4a
+**/*.aac
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.bmp
+**/*.tiff
+**/*.ico
+**/*.pdf
+**/*.zip
+**/*.gz
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.otf
+**/*.eot

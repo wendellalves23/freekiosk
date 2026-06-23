@@ -42,6 +42,7 @@ const messages: MessageTree = {
   },
   pin: {
     backToKiosk: 'Voltar ao kiosk',
+    reloadPage: 'Recarregar página',
     enterPin: 'Digite o PIN',
     enterPassword: 'Digite a senha',
     passwordPlaceholder: 'Digite a senha',

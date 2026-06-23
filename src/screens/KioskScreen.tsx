@@ -511,6 +511,20 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
     return () => backHandler.remove();
   }, []);
 
+  useEffect(() => {
+    DeviceControlService.registerWebViewCallbacks(
+      () => {
+        webViewRef.current?.reload();
+      },
+      (newUrl: string) => {
+        setUrl(newUrl);
+        setBaseUrl(newUrl);
+        setWebViewKey((k) => k + 1);
+      },
+      () => currentWebViewUrlRef.current,
+    );
+  }, []);
+
   // Auto-brightness: pause when screensaver activates, resume when it deactivates
   useEffect(() => {
     const handleAutoBrightnessForScreensaver = async () => {

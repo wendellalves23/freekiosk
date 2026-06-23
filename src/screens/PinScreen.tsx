@@ -4,6 +4,7 @@ import PinInput from '../components/PinInput';
 import { StorageService } from '../utils/storage';
 import { migrateOldPin, hasSecurePin } from '../utils/secureStorage';
 import AppLauncherModule from '../utils/AppLauncherModule';
+import DeviceControlService from '../services/DeviceControlService';
 import { grantSettingsAccess } from '../utils/authState';
 import { t } from '../i18n';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -75,6 +76,15 @@ const PinScreen: React.FC<PinScreenProps> = ({ navigation }) => {
     navigation.navigate('Settings');
   };
 
+  const handleReloadPage = async (): Promise<void> => {
+    if (displayMode !== 'webview') {
+      return;
+    }
+
+    await DeviceControlService.reloadWebView();
+    navigation.navigate('Kiosk');
+  };
+
   const handleBack = async (): Promise<void> => {
     // If in external app mode, relaunch the external app with overlay service
     if (displayMode === 'external_app' && externalAppPackage) {
@@ -116,9 +126,17 @@ const PinScreen: React.FC<PinScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Text style={styles.backButtonText}>↩️ {t('pin.backToKiosk')}</Text>
-      </TouchableOpacity>
+      <View style={styles.topActions}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Text style={styles.backButtonText}>↩️ {t('pin.backToKiosk')}</Text>
+        </TouchableOpacity>
+
+        {displayMode === 'webview' && (
+          <TouchableOpacity style={styles.reloadButton} onPress={handleReloadPage}>
+            <Text style={styles.reloadButtonText}>🔄 {t('pin.reloadPage')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <PinInput onSuccess={handleSuccess} storedPin={storedPin} />
     </View>
@@ -130,11 +148,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  backButton: {
+  topActions: {
     position: 'absolute',
     top: 40,
     left: 20,
     right: 20,
+    gap: 12,
+    zIndex: 1000,
+  },
+  backButton: {
     backgroundColor: '#fff',
     paddingVertical: 15,
     borderRadius: 10,
@@ -145,10 +167,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    zIndex: 1000,
   },
   backButtonText: {
     color: '#666',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  reloadButton: {
+    backgroundColor: '#f0f7ff',
+    paddingVertical: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#4a90d9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reloadButtonText: {
+    color: '#2a6cb8',
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
